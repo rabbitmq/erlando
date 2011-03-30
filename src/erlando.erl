@@ -351,8 +351,6 @@ fun_clauses([], _MonadStack) -> [].
 
 do_syntax([], _MonadStack) ->
     [];
-do_syntax([{generate, Line, _Pattern, _Expr}], _MonadStack) ->
-    erlang:error({"The last statement in a 'do' construct must be an expression", Line});
 do_syntax([{generate, Line, Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
     %% "Pattern <- Expr, Tail"
