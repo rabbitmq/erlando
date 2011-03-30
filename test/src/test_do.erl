@@ -29,11 +29,13 @@ test_maybe(Arg) ->
            return(ok)]).
 
 test_statet(Arg) ->
-    StateT = statet:new(maybe), %% statet wrapping of maybe monad
-    StateT:execStateT(
+    StateT = state_t:new(maybe), %% statet wrapping of maybe monad
+    StateT:exec_state_t(
       do([StateT
-          || S0 <- StateT:get(),
-             return(io:format("~p~n",[S0])),
+          || S <- return(1),
+             S <- return(2),
              StateT:put(some_new_state),
+             StateT:modify(fun (some_new_state) -> pi end),
+             return(io:format("~p~n",[S])),
              return(wibble)
          ]), Arg).
