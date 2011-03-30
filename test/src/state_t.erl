@@ -14,12 +14,13 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(statet, [InnerMonad]).
+-module(state_t, [InnerMonad]).
 -compile({parse_transform, erlando}).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
--export([get/0, put/1, evalStateT/2, execStateT/2, runStateT/2]).
+-export([get/0, put/1, eval_state_t/2, exec_state_t/2, run_state_t/2,
+         modify/1]).
 
 '>>='(X, Fun) -> fun (S) -> do([InnerMonad || {A, S1} <- X(S),
                                               (Fun(A))(S1)]) end.
@@ -34,10 +35,13 @@ get()         -> fun (S) -> InnerMonad:return({S, S}) end.
 
 put(S)        -> fun (_) -> InnerMonad:return({ok, S}) end.
 
-evalStateT(Monad, S) -> do([InnerMonad || {A, _S1} <- Monad(S),
-                                          return(A)]).
+eval_state_t(Monad, S) -> do([InnerMonad || {A, _S1} <- Monad(S),
+                                            return(A)]).
 
-execStateT(Monad, S) -> do([InnerMonad || {_A, S1} <- Monad(S),
-                                          return(S1)]).
+exec_state_t(Monad, S) -> do([InnerMonad || {_A, S1} <- Monad(S),
+                                            return(S1)]).
 
-runStateT(Monad, S) -> do([InnerMonad || Monad(S)]).
+run_state_t(Monad, S) -> do([InnerMonad || Monad(S)]).
+
+modify(Fun) -> do([THIS || S <- THIS:get(),
+                           THIS:put(Fun(S))]).
