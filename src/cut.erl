@@ -27,6 +27,7 @@
 -export([parse_transform/2]).
 
 parse_transform(Forms, _Options) ->
+    put(var_count, 0),
     Forms1 = forms(Forms),
     %%io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
     Forms1.
@@ -243,7 +244,7 @@ expr({'fun', Line, Body}) ->
         {function, M, F, A} -> %% R10B-6: fun M:F/A.
             {'fun', Line, {function, M, F, A}}
     end;
-expr({call, Line, F0, As0} = R) ->
+expr({call, Line, F0, As0}) ->
     %% N.B. If F an atom then call to local function or BIF,  if F a
     %% remote structure (see below) then call to other module,
     %% otherwise apply to "function".
@@ -344,27 +345,19 @@ fun_clauses([C0|Cs]) ->
     [C1|fun_clauses(Cs)];
 fun_clauses([]) -> [].
 
-detect_cut([])                    -> false;
-detect_cut([{var, _Line, '_'}|_]) -> true;
-detect_cut([_|As])                -> detect_cut(As).
-
 find_cut_vars(As) ->
-    find_cut_vars(As, [], [], 0).
+    find_cut_vars(As, [], []).
 
-find_cut_vars([], Pattern, Vars, _VarCount) ->
+find_cut_vars([], Pattern, Vars) ->
     {lists:reverse(Pattern), lists:reverse(Vars)};
-find_cut_vars([{var, Line, '_'}|As], Pattern, Vars, VarCount) ->
-    {VarName, VarCount1} = make_var_name(VarCount),
+find_cut_vars([{var, Line, '_'}|As], Pattern, Vars) ->
+    VarName = make_var_name(),
     Var = {var, Line, VarName},
-    find_cut_vars(As, [Var|Pattern], [Var|Vars], VarCount1);
-find_cut_vars([A|As], Pattern, Vars, VarCount) ->
-    find_cut_vars(As, Pattern, [A|Vars], VarCount).
+    find_cut_vars(As, [Var|Pattern], [Var|Vars]);
+find_cut_vars([A|As], Pattern, Vars) ->
+    find_cut_vars(As, Pattern, [A|Vars]).
 
-make_var_name(VarCount) ->
-    Str = "__cut_" ++ integer_to_list(VarCount),
-    try
-        list_to_existing_atom(Str),
-        make_var_name(VarCount+1)
-    catch error:badarg ->
-            {list_to_atom(Str), VarCount+1}
-    end.
+make_var_name() ->
+    VarCount = get(var_count),
+    put(var_count, VarCount+1),
+    list_to_atom("__cut_" ++ integer_to_list(VarCount)).
