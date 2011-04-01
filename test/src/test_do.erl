@@ -30,7 +30,7 @@ test_maybe(Arg) ->
 
 test_state_t(Arg) ->
     StateT = state_t:new(maybe), %% state_t wrapping of maybe monad
-    StateT:exec_state_t(
+    StateT:exec(
       do([StateT
           || S <- return(1),
              S <- return(2),
@@ -49,7 +49,7 @@ foo(StateT) ->
 
 test_state_t_identity() ->
     StateT = state_t:new(identity),
-    StateT:run_state_t(
+    StateT:run(
       do([StateT
           || X <- foo(StateT),
              return(X)]), argh).
