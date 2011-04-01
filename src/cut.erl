@@ -29,7 +29,7 @@
 parse_transform(Forms, _Options) ->
     put(var_count, 0),
     Forms1 = forms(Forms),
-    %%io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
+    io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
     Forms1.
 
 %% forms(Fs) -> lists:map(fun (F) -> form(F) end, Fs).
@@ -272,13 +272,25 @@ expr({match, Line, P0, E0}) ->
 expr({bin, Line, Fs}) ->
     Fs2 = pattern_grp(Fs),
     {bin, Line, Fs2};
-expr({op, Line, Op, A0}) ->
-    A1 = expr(A0),
-    {op, Line, Op, A1};
+expr({op, Line, Op, A0} = R) ->
+    case find_cut_vars([A0]) of
+        {[], _Vars} ->
+            A1 = expr(A0),
+            {op, Line, Op, A1};
+        {Pattern, [A1]} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{op, Line, Op, A1}]}]}}
+    end;
 expr({op, Line, Op, L0, R0}) ->
-    L1 = expr(L0),
-    R1 = expr(R0), %% They see the same variables
-    {op, Line, Op, L1, R1};
+    case find_cut_vars([L0, R0]) of
+        {[], _Vars} ->
+            L1 = expr(L0),
+            R1 = expr(R0), %% They see the same variables
+            {op, Line, Op, L1, R1};
+        {Pattern, [L1, R1]} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{op, Line, Op, L1, R1}]}]}}
+    end;
 %% The following are not allowed to occur anywhere!
 expr({remote, Line, M0, F0}) ->
     M1 = expr(M0),
