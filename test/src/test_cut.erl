@@ -25,3 +25,11 @@ test_cut() ->
     F1(c).
 
 foo(a,b,c,11,e) -> ok.
+
+test_cut_op() ->
+    F = 1 + _,
+    F(2).
+
+test_cut_unary_op() ->
+    F = -_,
+    F(1).
