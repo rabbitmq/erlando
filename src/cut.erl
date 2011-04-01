@@ -29,7 +29,7 @@
 parse_transform(Forms, _Options) ->
     put(var_count, 0),
     Forms1 = forms(Forms),
-    io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
+    %%io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
     Forms1.
 
 %% forms(Fs) -> lists:map(fun (F) -> form(F) end, Fs).
@@ -272,7 +272,7 @@ expr({match, Line, P0, E0}) ->
 expr({bin, Line, Fs}) ->
     Fs2 = pattern_grp(Fs),
     {bin, Line, Fs2};
-expr({op, Line, Op, A0} = R) ->
+expr({op, Line, Op, A0}) ->
     case find_cut_vars([A0]) of
         {[], _Vars} ->
             A1 = expr(A0),
