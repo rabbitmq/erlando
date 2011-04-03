@@ -19,6 +19,10 @@
 
 -compile(export_all).
 
+-record(r, { f1 = false,
+             f2 = wibble,
+             f3 = juice }).
+
 test_cut() ->
     F0 = foo(a, b, _, 5+6, _),
     F1 = F0(_, e),
@@ -38,3 +42,7 @@ test_cut_tuple() ->
     {foo, _} = {foo, {bar, _}},
     {foo, F} = {foo, {baz, _}},
     {baz, qux} = F(qux).
+
+test_cut_record() ->
+    true = #r{} =/= #r{f3 = _},
+    orange = ((#r{f3 = _})(orange))#r.f3.
