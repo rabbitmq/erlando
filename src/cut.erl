@@ -195,15 +195,21 @@ expr({tuple, Line, Es0}) ->
         {[],     _Es2} ->
             {tuple, Line, Es1};
         {Pattern, Es2} ->
-            {'fun', Line, {clauses,
-                           [{clause, Line, Pattern, [], [{tuple, Line, Es2}]}]}}
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{tuple, Line, Es2}]}]}}
     end;
 expr({record_index, Line, Name, Field0}) ->
     Field1 = expr(Field0),
     {record_index, Line, Name, Field1};
 expr({record, Line, Name, Inits0}) ->
     Inits1 = record_inits(Inits0),
-    {record, Line, Name, Inits1};
+    case find_record_inits_cut_vars(Inits1) of
+        {[],     _Inits2} ->
+            {record, Line, Name, Inits1};
+        {Pattern, Inits2} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{record, Line, Name, Inits2}]}]}}
+    end;
 expr({record_field, Line, Rec0, Name, Field0}) ->
     Rec1 = expr(Rec0),
     Field1 = expr(Field0),
@@ -364,18 +370,20 @@ fun_clauses([C0|Cs]) ->
     [C1|fun_clauses(Cs)];
 fun_clauses([]) -> [].
 
-%% contains_cut({var, _Line, '_'}) ->
-%%     true;
-%% contains_cut({tuple, _Line, Ps0}) ->
-%%     lists:any(fun contains_cut/1, Ps0);
-%% contains_cut(_) ->
-%%     false.
+find_record_inits_cut_vars(Inits) ->
+    find_record_inits_cut_vars(Inits, [], []).
 
-%% substitute_cut({tuple, Line, Ps0}) ->
-%%     {Pattern, Ps1} = find_cut_vars(Ps0),
-%%     {Pattern, {tuple, Line, Ps1}};
-%% substitute_cut(Other) ->
-%%     {[], Other}.
+find_record_inits_cut_vars([], Pattern, InitsAcc) ->
+    {lists:reverse(Pattern), lists:reverse(InitsAcc)};
+find_record_inits_cut_vars(
+  [{record_field, Line, FieldName, {var, Line1, '_'}}|Inits],
+  Pattern, InitsAcc) ->
+    VarName = make_var_name(),
+    Var = {var, Line1, VarName},
+    find_record_inits_cut_vars(
+      Inits, [Var|Pattern], [{record_field, Line, FieldName, Var}|InitsAcc]);
+find_record_inits_cut_vars([Init|Inits], Pattern, InitsAcc) ->
+    find_record_inits_cut_vars(Inits, Pattern, [Init|InitsAcc]).
 
 find_cut_vars(As) ->
     find_cut_vars(As, [], []).
