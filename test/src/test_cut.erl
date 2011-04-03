@@ -45,4 +45,5 @@ test_cut_tuple() ->
 
 test_cut_record() ->
     true = #r{} =/= #r{f3 = _},
-    orange = ((#r{f3 = _})(orange))#r.f3.
+    orange = ((#r{f3 = _})(orange))#r.f3,
+    {r, foo, bar, baz} = (#r{f1 = _, f2 = _, f3 = _})(foo, bar, baz).
