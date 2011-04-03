@@ -19,6 +19,11 @@
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 
+-ifdef(use_specs).
+-type(monad(A) :: {'ok', A} | {'error', string()}).
+-include("monad_specs.hrl").
+-endif.
+
 '>>='({error, _Err} = Error, _Fun) -> Error;
 '>>='(Result,                 Fun) -> Fun(Result).
 

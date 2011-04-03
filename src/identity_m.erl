@@ -19,6 +19,11 @@
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 
+-ifdef(use_specs).
+-type(monad(A) :: A).
+-include("monad_specs.hrl").
+-endif.
+
 '>>='(X, Fun) -> Fun(X).
 
 '>>'(_X, Fun) -> Fun().

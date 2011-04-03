@@ -2,12 +2,14 @@ DEPS_FILE:=deps.mk
 SOURCE_DIR:=src
 TEST_SOURCE_DIR:=test/src
 EBIN_DIR:=ebin
+INCLUDE_DIR:=include
 
 SOURCES=$(wildcard $(SOURCE_DIR)/*.erl)
 TEST_SOURCES=$(wildcard $(TEST_SOURCE_DIR)/*.erl)
 BEAM_TARGETS=$(patsubst %.erl, $(EBIN_DIR)/%.beam, $(notdir $(SOURCES) $(TEST_SOURCES)))
+INCLUDES=$(wildcard $(INCLUDE_DIR)/*.hrl)
 
-ERLC_OPTS=-o $(EBIN_DIR) -Wall -v +debug_info
+ERLC_OPTS=-I $(INCLUDE_DIR) -o $(EBIN_DIR) -Wall -v +debug_info -Duse_specs
 
 all: $(BEAM_TARGETS)
 

@@ -14,27 +14,7 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(test_m).
-
--behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
-
--ifdef(use_specs).
--type(monad(_A) :: 'passed' | {'failed', any()}).
--include("monad_specs.hrl").
--endif.
-
-'>>='(passed, Fun) -> attempt(fun () -> Fun(passed) end);
-'>>='(X,     _Fun) -> {failed, X}.
-
-'>>'(passed, Fun) -> attempt(Fun);
-'>>'(X,     _Fun) -> {failed, X}.
-
-return(_X) -> passed.
-fail(X)    -> {failed, X}.
-
-attempt(Fun) ->
-    try Fun()
-    catch Class:Reason ->
-            fail({Class, Reason})
-    end.
+-spec(return/1 :: (A) -> monad(A)).
+-spec(fail/1 :: (string()) -> monad(_A)).
+-spec('>>='/2 :: (monad(A), fun ((A) -> monad(B))) -> monad(B)).
+-spec('>>'/2 :: (monad(_A), fun (() -> monad(B))) -> monad(B)).
