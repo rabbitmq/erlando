@@ -16,6 +16,7 @@
 
 -module(test_cut).
 -compile({parse_transform, cut}).
+-compile({parse_transform, erlando}).
 
 -compile(export_all).
 
@@ -60,11 +61,9 @@ test_cut_binary() ->
     passed.
 
 test() ->
-    passed = lists:foldl(
-               fun (F, passed) -> passed = F() end,
-               passed, [fun test_cut/0,
-                        fun test_cut_op/0,
-                        fun test_cut_unary_op/0,
-                        fun test_cut_tuple/0,
-                        fun test_cut_record/0,
-                        fun test_cut_binary/0]).
+    passed = do([test || test_cut(),
+                         test_cut_op(),
+                         test_cut_unary_op(),
+                         test_cut_tuple(),
+                         test_cut_record(),
+                         test_cut_binary()]).
