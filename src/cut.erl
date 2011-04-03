@@ -203,7 +203,7 @@ expr({record_index, Line, Name, Field0}) ->
     {record_index, Line, Name, Field1};
 expr({record, Line, Name, Inits0}) ->
     Inits1 = record_inits(Inits0),
-    case find_record_inits_cut_vars(Inits1) of
+    case find_record_cut_vars(Inits1) of
         {[],     _Inits2} ->
             {record, Line, Name, Inits1};
         {Pattern, Inits2} ->
@@ -217,7 +217,13 @@ expr({record_field, Line, Rec0, Name, Field0}) ->
 expr({record, Line, Rec0, Name, Upds0}) ->
     Rec1 = expr(Rec0),
     Upds1 = record_updates(Upds0),
-    {record, Line, Rec1, Name, Upds1};
+    case find_record_cut_vars(Upds1) of
+        {[],     _Upds2} ->
+            {record, Line, Rec1, Name, Upds1};
+        {Pattern, Upds2} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{record, Line, Rec1, Name, Upds2}]}]}}
+    end;
 expr({record_field, Line, Rec0, Field0}) ->
     Rec1 = expr(Rec0),
     Field1 = expr(Field0),
@@ -370,20 +376,20 @@ fun_clauses([C0|Cs]) ->
     [C1|fun_clauses(Cs)];
 fun_clauses([]) -> [].
 
-find_record_inits_cut_vars(Inits) ->
-    find_record_inits_cut_vars(Inits, [], []).
+find_record_cut_vars(Inits) ->
+    find_record_cut_vars(Inits, [], []).
 
-find_record_inits_cut_vars([], Pattern, InitsAcc) ->
+find_record_cut_vars([], Pattern, InitsAcc) ->
     {lists:reverse(Pattern), lists:reverse(InitsAcc)};
-find_record_inits_cut_vars(
+find_record_cut_vars(
   [{record_field, Line, FieldName, {var, Line1, '_'}}|Inits],
   Pattern, InitsAcc) ->
     VarName = make_var_name(),
     Var = {var, Line1, VarName},
-    find_record_inits_cut_vars(
+    find_record_cut_vars(
       Inits, [Var|Pattern], [{record_field, Line, FieldName, Var}|InitsAcc]);
-find_record_inits_cut_vars([Init|Inits], Pattern, InitsAcc) ->
-    find_record_inits_cut_vars(Inits, Pattern, [Init|InitsAcc]).
+find_record_cut_vars([Init|Inits], Pattern, InitsAcc) ->
+    find_record_cut_vars(Inits, Pattern, [Init|InitsAcc]).
 
 find_cut_vars(As) ->
     find_cut_vars(As, [], []).

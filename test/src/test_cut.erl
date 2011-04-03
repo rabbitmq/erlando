@@ -46,4 +46,7 @@ test_cut_tuple() ->
 test_cut_record() ->
     true = #r{} =/= #r{f3 = _},
     orange = ((#r{f3 = _})(orange))#r.f3,
-    {r, foo, bar, baz} = (#r{f1 = _, f3 = _, f2 = _})(foo, baz, bar).
+    {r, foo, bar, baz} = (#r{f1 = _, f3 = _, f2 = _})(foo, baz, bar),
+    R = #r{},
+    F = R#r{f3 = _, f2 = _},
+    wobble = (F(orange, wobble))#r.f2.
