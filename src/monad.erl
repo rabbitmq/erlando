@@ -36,8 +36,8 @@ behaviour_info(_Other) ->
     undefined.
 
 join(Monad, X) ->
-    do([Monad || Y <- X(),
-                 Y()]).
+    do([Monad || Y <- X,
+                 Y]).
 
 sequence(Monad, Xs) ->
     lists:foldr(fun (X, Acc) ->

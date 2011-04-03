@@ -87,3 +87,6 @@ test_sequence() ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
     {just, List} = monad:sequence(maybe_m, ListM).
+
+test_join() ->
+    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))).
