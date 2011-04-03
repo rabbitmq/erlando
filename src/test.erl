@@ -19,11 +19,17 @@
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 
-'>>='({passed, X}, Fun) -> Fun(X);
-'>>='(X,          _Fun) -> {failed, X}.
+'>>='(passed, Fun) -> attempt(fun () -> Fun(passed) end);
+'>>='(X,     _Fun) -> {failed, X}.
 
-'>>'(passed, Fun) -> Fun();
+'>>'(passed, Fun) -> attempt(Fun());
 '>>'(X,     _Fun) -> {failed, X}.
 
-return(X) -> X.
-fail(X)   -> {failed, X}.
+return(_X) -> passed.
+fail(X)    -> {failed, X}.
+
+attempt(Fun) ->
+    try Fun()
+    catch Class:Reason ->
+            fail({Class, Reason})
+    end.
