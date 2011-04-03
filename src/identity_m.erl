@@ -14,16 +14,14 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(maybe).
+-module(identity_m).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 
-'>>='({just, X}, Fun) -> Fun(X);
-'>>='(nothing,  _Fun) -> nothing.
+'>>='(X, Fun) -> Fun(X).
 
-'>>'({just, _X}, Fun) -> Fun();
-'>>'(nothing,   _Fun) -> nothing.
+'>>'(_X, Fun) -> Fun().
 
-return(X) -> {just, X}.
-fail(_X)  -> nothing.
+return(X) -> X.
+fail(X)   -> throw({error, X}).

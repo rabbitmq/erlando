@@ -14,10 +14,9 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
-%% This is the Omega monad which is like the list monad, but does
-%% breadth first, not depth first (though not strictly). This
-%% implementation is based on Luke Palmer's Control.Monad.Omega module
-%% for Haskell
+%% This is the Omega monad which is like the list monad, but does not
+%% depth first, and not breadth first traversal. This implementation
+%% is based on Luke Palmer's Control.Monad.Omega module for Haskell
 %% (http://hackage.haskell.org/packages/archive/control-monad-omega/latest/doc/html/Control-Monad-Omega.html). As
 %% the documentation there states:
 %%
@@ -27,7 +26,7 @@
 %%    of results will always be reachable.
 %%
 
--module(omega).
+-module(omega_m).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).

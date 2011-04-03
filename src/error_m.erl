@@ -14,7 +14,7 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(error).
+-module(error_m).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).

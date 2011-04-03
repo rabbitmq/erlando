@@ -16,7 +16,7 @@
 
 %% List Monad. Mainly just for fun! As normal, this is depth first.
 
--module(list).
+-module(list_m).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
