@@ -32,6 +32,11 @@
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 -export([diagonal/1]).
 
+-ifdef(use_specs).
+-type(monad(A) :: [A]).
+-include("monad_specs.hrl").
+-endif.
+
 '>>='(X, Fun) -> diagonal([Fun(E) || E <- X]).
 '>>'(X, Fun)  -> diagonal([Fun() || _E <- X]).
 

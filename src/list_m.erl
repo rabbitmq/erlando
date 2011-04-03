@@ -22,6 +22,11 @@
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 -export([guard/1]).
 
+-ifdef(use_specs).
+-type(monad(A) :: [A]).
+-include("monad_specs.hrl").
+-endif.
+
 %% Note that using a list comprehension is (obviously) cheating, but
 %% it's easier to read. The "real" implementation is also included for
 %% completeness.
@@ -38,4 +43,4 @@ fail(_X)  -> [].
 %% TODO: Guard shouldn't really be here - it's in MonadPlus, but I'll
 %% get to that later.
 guard(true)  -> return(ok);
-guard(false) -> fail(ko).
+guard(false) -> fail("").

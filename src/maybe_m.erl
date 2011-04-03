@@ -19,6 +19,11 @@
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 
+-ifdef(use_specs).
+-type(monad(A) :: {'just', A} | nothing).
+-include("monad_specs.hrl").
+-endif.
+
 '>>='({just, X}, Fun) -> Fun(X);
 '>>='(nothing,  _Fun) -> nothing.
 
