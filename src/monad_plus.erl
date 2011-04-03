@@ -42,7 +42,7 @@ msum(Monad, List) ->
     lists:foldr(Monad:mplus(_, _), Monad:mzero(), List).
 
 mfilter(Monad, Pred, X) ->
-    do([Monad || A <- X(),
+    do([Monad || A <- X,
                  case Pred(A) of
                      true  -> return(A);
                      false -> Monad:mzero()
