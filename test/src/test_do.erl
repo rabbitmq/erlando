@@ -82,3 +82,8 @@ test_omega() ->
                        return({X,Y,Z})]),
     true = A =/= B,
     true = A =:= lists:usort(B).
+
+test_sequence() ->
+    List = lists:seq(1,5),
+    ListM = [do([maybe_m || return(N)]) || N <- List],
+    {just, List} = monad:sequence(maybe_m, ListM).
