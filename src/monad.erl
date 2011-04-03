@@ -17,6 +17,15 @@
 -module(monad).
 
 -export([behaviour_info/1]).
+-export([join/2, sequence/2]).
+
+-ifdef(use_specs).
+-type(monad(_A) :: any()). %% urm, don't know what to do here.
+-spec(join/2 :: (atom(), monad(monad(A))) -> monad(A)).
+-spec(sequence/2 :: (atom(), [monad(A)]) -> monad([A])).
+-endif.
+
+-compile({parse_transform, erlando}).
 
 behaviour_info(callbacks) ->
     [{'>>=',  2},
@@ -25,3 +34,14 @@ behaviour_info(callbacks) ->
      {fail,   1}];
 behaviour_info(_Other) ->
     undefined.
+
+join(Monad, X) ->
+    do([Monad || Y <- X(),
+                 Y()]).
+
+sequence(Monad, Xs) ->
+    lists:foldr(fun (X, Acc) ->
+                        do([Monad || E <- X,
+                                     Es <- Acc,
+                                     return([E|Es])])
+                end, Monad:return([]), Xs).
