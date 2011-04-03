@@ -14,22 +14,16 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(test).
+-module(maybe_m).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
 
-'>>='(passed, Fun) -> attempt(fun () -> Fun(passed) end);
-'>>='(X,     _Fun) -> {failed, X}.
+'>>='({just, X}, Fun) -> Fun(X);
+'>>='(nothing,  _Fun) -> nothing.
 
-'>>'(passed, Fun) -> attempt(Fun());
-'>>'(X,     _Fun) -> {failed, X}.
+'>>'({just, _X}, Fun) -> Fun();
+'>>'(nothing,   _Fun) -> nothing.
 
-return(_X) -> passed.
-fail(X)    -> {failed, X}.
-
-attempt(Fun) ->
-    try Fun()
-    catch Class:Reason ->
-            fail({Class, Reason})
-    end.
+return(X) -> {just, X}.
+fail(_X)  -> nothing.

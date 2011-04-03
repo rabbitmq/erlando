@@ -65,9 +65,9 @@ test_cut_binary() ->
     passed.
 
 test() ->
-    passed = do([test || test_cut(),
-                         test_cut_op(),
-                         test_cut_unary_op(),
-                         test_cut_tuple(),
-                         test_cut_record(),
-                         test_cut_binary()]).
+    passed = do([test_m || test_cut(),
+                           test_cut_op(),
+                           test_cut_unary_op(),
+                           test_cut_tuple(),
+                           test_cut_record(),
+                           test_cut_binary()]).
