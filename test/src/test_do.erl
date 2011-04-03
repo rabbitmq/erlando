@@ -61,11 +61,10 @@ test_list() ->
                     Y <- [1,2],
                     return({X,Y})]),
     %% Classic pythagorean triples
-    P = [{X, Y, Z} ||
-            Z <- lists:seq(1,20),
-            X <- lists:seq(1,Z),
-            Y <- lists:seq(X,Z),
-            math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)],
+    P = [{X, Y, Z} || Z <- lists:seq(1,20),
+                      X <- lists:seq(1,Z),
+                      Y <- lists:seq(X,Z),
+                      math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)],
     P = do([list || Z <- lists:seq(1,20),
                     X <- lists:seq(1,Z),
                     Y <- lists:seq(X,Z), %% TODO: guard shouldn't be in list
