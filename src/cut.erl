@@ -27,6 +27,7 @@
 -export([parse_transform/2]).
 
 parse_transform(Forms, _Options) ->
+    %%io:format("~p~n", [Forms]),
     put(var_count, 0),
     Forms1 = forms(Forms),
     %%io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
@@ -190,7 +191,13 @@ expr({bc, Line, E0, Qs0}) ->
     {bc, Line, E1, Qs1};
 expr({tuple, Line, Es0}) ->
     Es1 = expr_list(Es0),
-    {tuple, Line, Es1};
+    case find_cut_vars(Es1) of
+        {[],     _Es2} ->
+            {tuple, Line, Es1};
+        {Pattern, Es2} ->
+            {'fun', Line, {clauses,
+                           [{clause, Line, Pattern, [], [{tuple, Line, Es2}]}]}}
+    end;
 expr({record_index, Line, Name, Field0}) ->
     Field1 = expr(Field0),
     {record_index, Line, Name, Field1};
@@ -249,9 +256,9 @@ expr({call, Line, F0, As0}) ->
     %% remote structure (see below) then call to other module,
     %% otherwise apply to "function".
     F1 = expr(F0),
-    case find_cut_vars(As0) of
+    As1 = expr_list(As0),
+    case find_cut_vars(As1) of
         {[], _Vars} ->
-            As1 = expr_list(As0),
             {call, Line, F1, As1};
         {Pattern, Vars} ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
@@ -273,23 +280,23 @@ expr({bin, Line, Fs}) ->
     Fs2 = pattern_grp(Fs),
     {bin, Line, Fs2};
 expr({op, Line, Op, A0}) ->
-    case find_cut_vars([A0]) of
+    A1 = expr(A0),
+    case find_cut_vars([A1]) of
         {[], _Vars} ->
-            A1 = expr(A0),
             {op, Line, Op, A1};
-        {Pattern, [A1]} ->
+        {Pattern, [A2]} ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
-                                      [{op, Line, Op, A1}]}]}}
+                                      [{op, Line, Op, A2}]}]}}
     end;
 expr({op, Line, Op, L0, R0}) ->
-    case find_cut_vars([L0, R0]) of
+    L1 = expr(L0),
+    R1 = expr(R0), %% They see the same variables
+    case find_cut_vars([L1, R1]) of
         {[], _Vars} ->
-            L1 = expr(L0),
-            R1 = expr(R0), %% They see the same variables
             {op, Line, Op, L1, R1};
-        {Pattern, [L1, R1]} ->
+        {Pattern, [L2, R2]} ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
-                                      [{op, Line, Op, L1, R1}]}]}}
+                                      [{op, Line, Op, L2, R2}]}]}}
     end;
 %% The following are not allowed to occur anywhere!
 expr({remote, Line, M0, F0}) ->
@@ -356,6 +363,19 @@ fun_clauses([C0|Cs]) ->
     C1 = clause(C0),
     [C1|fun_clauses(Cs)];
 fun_clauses([]) -> [].
+
+%% contains_cut({var, _Line, '_'}) ->
+%%     true;
+%% contains_cut({tuple, _Line, Ps0}) ->
+%%     lists:any(fun contains_cut/1, Ps0);
+%% contains_cut(_) ->
+%%     false.
+
+%% substitute_cut({tuple, Line, Ps0}) ->
+%%     {Pattern, Ps1} = find_cut_vars(Ps0),
+%%     {Pattern, {tuple, Line, Ps1}};
+%% substitute_cut(Other) ->
+%%     {[], Other}.
 
 find_cut_vars(As) ->
     find_cut_vars(As, [], []).
