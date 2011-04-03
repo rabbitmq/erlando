@@ -20,11 +20,14 @@
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
--export([guard/1]).
+
+-behaviour(monad_plus).
+-export([mzero/0, mplus/2]).
 
 -ifdef(use_specs).
 -type(monad(A) :: [A]).
 -include("monad_specs.hrl").
+-include("monad_plus_specs.hrl").
 -endif.
 
 %% Note that using a list comprehension is (obviously) cheating, but
@@ -40,7 +43,5 @@
 return(X) -> [X].
 fail(_X)  -> [].
 
-%% TODO: Guard shouldn't really be here - it's in MonadPlus, but I'll
-%% get to that later.
-guard(true)  -> return(ok);
-guard(false) -> fail("").
+mzero() -> [].
+mplus(X, Y) -> lists:append(X, Y).
