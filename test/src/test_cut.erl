@@ -33,3 +33,8 @@ test_cut_op() ->
 test_cut_unary_op() ->
     F = -_,
     F(1).
+
+test_cut_tuple() ->
+    {foo, _} = {foo, {bar, _}},
+    {foo, F} = {foo, {baz, _}},
+    {baz, qux} = F(qux).
