@@ -44,7 +44,7 @@ fail(_X)  -> [].
 %%  [i, j, k, l],
 %%  [m, n, o, p]].
 %%
-%% diagonal traverses diagonally from north-east corner, heading east
+%% diagonal traverses diagonally from north-west corner, heading east
 %% then south-west. I.e.
 %% [a, b, e, c, f, i, d, g, j, m, h, k, n, l, o, p]
 diagonal(LoL) -> lists:append(stripe(LoL)).
