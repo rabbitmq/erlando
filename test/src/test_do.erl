@@ -70,3 +70,14 @@ test_list() ->
                     Y <- lists:seq(X,Z), %% TODO: guard shouldn't be in list
                     list:guard(math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
                     return({X,Y,Z})]).
+
+test_omega() ->
+    A = [{X,Y,Z} || X <- "abcd",
+                    Y <- lists:seq(1,5),
+                    Z <- lists:seq(11,15)],
+    B = do([omega || X <- "abcd",
+                     Y <- lists:seq(1,5),
+                     Z <- lists:seq(11,15),
+                     return({X,Y,Z})]),
+    true = A =/= B,
+    true = A =:= lists:usort(B).
