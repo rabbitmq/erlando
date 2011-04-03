@@ -26,22 +26,25 @@
 test_cut() ->
     F0 = foo(a, b, _, 5+6, _),
     F1 = F0(_, e),
-    F1(c).
+    ok = F1(c),
+    passed.
 
 foo(a,b,c,11,e) -> ok.
 
 test_cut_op() ->
     F = 1 + _,
-    F(2).
+    3 = F(2),
+    passed.
 
 test_cut_unary_op() ->
     F = -_,
-    F(1).
+    0 = 1 + F(1),
+    passed.
 
 test_cut_tuple() ->
-    {foo, _} = {foo, {bar, _}},
-    {foo, F} = {foo, {baz, _}},
-    {baz, qux} = F(qux).
+    {foo, _} = {foo, F} = {foo, {bar, _}},
+    {bar, qux} = F(qux),
+    passed.
 
 test_cut_record() ->
     true = #r{} =/= #r{f3 = _},
@@ -49,4 +52,19 @@ test_cut_record() ->
     {r, foo, bar, baz} = (#r{f1 = _, f3 = _, f2 = _})(foo, baz, bar),
     R = #r{},
     F = R#r{f3 = _, f2 = _},
-    wobble = (F(orange, wobble))#r.f2.
+    wobble = (F(orange, wobble))#r.f2,
+    passed.
+
+test_cut_binary() ->
+    <<"AbA", _/binary>> = (<<65, _, 65>>)($b),
+    passed.
+
+test() ->
+    passed = lists:foldl(
+               fun (F, passed) -> passed = F() end,
+               passed, [fun test_cut/0,
+                        fun test_cut_op/0,
+                        fun test_cut_unary_op/0,
+                        fun test_cut_tuple/0,
+                        fun test_cut_record/0,
+                        fun test_cut_binary/0]).
