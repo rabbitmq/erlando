@@ -58,6 +58,10 @@ test_cut_record() ->
 
 test_cut_binary() ->
     <<"AbA", _/binary>> = (<<65, _, 65>>)($b),
+    F = <<_:_>>,
+    G = F(15, _),
+    <<>> = G(0),
+    <<1:1/unsigned, 1:1/unsigned, 1:1/unsigned, 1:1/unsigned>> = G(4),
     passed.
 
 test() ->

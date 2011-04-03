@@ -382,31 +382,44 @@ fun_clauses([C0|Cs]) ->
     [C1|fun_clauses(Cs)];
 fun_clauses([]) -> [].
 
+%% Turns out you can't abstract out binary types:
+%% 1> X = binary, Y = fun (Z) -> <<Z/X>> end.
+%% * 1: syntax error before: X
+%% I didn't know that. I still support that in cuts though you can't
+%% use it on the grounds that Erlang might fix this at some later
+%% point.
 find_binary_cut_vars(BinFields) ->
     cut_vars(
-      fun ({bin_element, _Line, {var, _Line1, '_'} = Var, _Sz, _Ty}) -> Var;
-          (_)                                                        -> nothing
+      fun ({bin_element, _Line, Var, Size, Type}) ->
+              [V || V = {var, _Line1, '_'} <- [Var, Size, Type]];
+          (_) ->
+              []
       end,
-      fun ({bin_element, Line, _Var, Sz, Type}, Var) ->
-              {bin_element, Line, Var, Sz, Type}
+      fun ({bin_element, Line, Var, Size, Type}, Vars) ->
+              {[Var1, Size1, Type1], []} =
+                  lists:foldr(
+                    fun ({var, _Line, '_'}, {Res, [V|Vs]}) -> {[V|Res], Vs};
+                        (V,                 {Res, Vs})     -> {[V|Res], Vs}
+                    end, {[], Vars}, [Var, Size, Type]),
+              {bin_element, Line, Var1, Size1, Type1}
       end,
       BinFields).
 
 find_record_cut_vars(RecFields) ->
     cut_vars(
-      fun ({record_field, _Line, _FName, {var, _Line1, '_'} = Var}) -> Var;
-          (_)                                                       -> nothing
+      fun ({record_field, _Line, _FName, {var, _Line1, '_'} = Var}) -> [Var];
+          (_)                                                       -> []
       end,
-      fun ({record_field, Line, FName, _Var}, Var) ->
+      fun ({record_field, Line, FName, _Var}, [Var]) ->
               {record_field, Line, FName, Var}
       end,
       RecFields).
 
 find_cut_vars(As) ->
-    cut_vars(fun ({var, _Line, '_'} = Var) -> Var;
-                 (_)                       -> nothing
+    cut_vars(fun ({var, _Line, '_'} = Var) -> [Var];
+                 (_)                       -> []
              end,
-             fun (_, {var, _Line, _Var} = Var) -> Var end,
+             fun (_, [{var, _Line, _Var} = Var]) -> Var end,
              As).
 
 cut_vars(TestFun, CombFun, AstFrag) ->
@@ -416,13 +429,13 @@ cut_vars(_TestFun, _CombFun, [], Pattern, AstAcc) ->
     {lists:reverse(Pattern), lists:reverse(AstAcc)};
 cut_vars(TestFun, CombFun, [Frag|AstFrags], Pattern, AstAcc) ->
     case TestFun(Frag) of
-        {var, Line, '_'} ->
-            VarName = make_var_name(),
-            Var = {var, Line, VarName},
-            Frag1 = CombFun(Frag, Var),
-            cut_vars(TestFun, CombFun, AstFrags, [Var|Pattern], [Frag1|AstAcc]);
-        nothing ->
-            cut_vars(TestFun, CombFun, AstFrags, Pattern, [Frag|AstAcc])
+        [] ->
+            cut_vars(TestFun, CombFun, AstFrags, Pattern, [Frag|AstAcc]);
+        Vars ->
+            Vars1 = [{var, Line, make_var_name()} || {var, Line, _} <- Vars],
+            Frag1 = CombFun(Frag, Vars1),
+            cut_vars(TestFun, CombFun, AstFrags,
+                     Vars1 ++ Pattern, [Frag1|AstAcc])
     end.
 
 make_var_name() ->
