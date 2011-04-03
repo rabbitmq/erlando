@@ -67,8 +67,9 @@ test_list() ->
                       math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)],
     P = do([list_m || Z <- lists:seq(1,20),
                       X <- lists:seq(1,Z),
-                      Y <- lists:seq(X,Z), %% TODO: guard shouldn't be in list
-                      list_m:guard(math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
+                      Y <- lists:seq(X,Z),
+                      monad_plus:guard(
+                        list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
                       return({X,Y,Z})]).
 
 test_omega() ->

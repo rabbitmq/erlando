@@ -14,29 +14,5 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(maybe_m).
-
--behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
-
--behaviour(monad_plus).
--export([mzero/0, mplus/2]).
-
--ifdef(use_specs).
--type(monad(A) :: {'just', A} | nothing).
--include("monad_specs.hrl").
--include("monad_plus_specs.hrl").
--endif.
-
-'>>='({just, X}, Fun) -> Fun(X);
-'>>='(nothing,  _Fun) -> nothing.
-
-'>>'({just, _X}, Fun) -> Fun();
-'>>'(nothing,   _Fun) -> nothing.
-
-return(X) -> {just, X}.
-fail(_X)  -> nothing.
-
-mzero() -> nothing.
-mplus(nothing, Y) -> Y;
-mplus(X,      _Y) -> X.
+-spec(mzero/0 :: () -> monad(_A)).
+-spec(mplus/2 :: (monad(A), monad(A)) -> monad(A)).
