@@ -53,3 +53,10 @@ test_state_t_identity() ->
       do([StateT
           || X <- foo(StateT),
              return(X)]), argh).
+
+test_list() ->
+    A = [{X,Y} || X <- "abcd",
+                  Y <- [1,2]],
+    A = do([list || X <- "abcd",
+                    Y <- [1,2],
+                    return({X,Y})]).
