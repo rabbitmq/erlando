@@ -26,4 +26,4 @@
 '>>'(X,     _Fun) -> {failed, X}.
 
 return(X) -> X.
-fail(X)  -> {failed, X}.
+fail(X)   -> {failed, X}.
