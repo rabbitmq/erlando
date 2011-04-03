@@ -270,11 +270,11 @@ expr({call, Line, F0, As0}) ->
     F1 = expr(F0),
     As1 = expr_list(As0),
     case find_cut_vars(As1) of
-        {[], _Vars} ->
+        {[], _As2} ->
             {call, Line, F1, As1};
-        {Pattern, Vars} ->
+        {Pattern, As2} ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
-                                      [{call, Line, F1, Vars}]}]}}
+                                      [{call, Line, F1, As2}]}]}}
     end;
 expr({'catch', Line, E0}) ->
     %% No new variables added.
@@ -289,12 +289,18 @@ expr({match, Line, P0, E0}) ->
     P1 = pattern(P0),
     {match, Line, P1, E1};
 expr({bin, Line, Fs}) ->
-    Fs2 = pattern_grp(Fs),
-    {bin, Line, Fs2};
+    Fs1 = pattern_grp(Fs),
+    case find_binary_cut_vars(Fs1) of
+        {[], _Fs2} ->
+            {bin, Line, Fs1};
+        {Pattern, Fs2} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{bin, Line, Fs2}]}]}}
+    end;
 expr({op, Line, Op, A0}) ->
     A1 = expr(A0),
     case find_cut_vars([A1]) of
-        {[], _Vars} ->
+        {[], _A2} ->
             {op, Line, Op, A1};
         {Pattern, [A2]} ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
@@ -304,7 +310,7 @@ expr({op, Line, Op, L0, R0}) ->
     L1 = expr(L0),
     R1 = expr(R0), %% They see the same variables
     case find_cut_vars([L1, R1]) of
-        {[], _Vars} ->
+        {[], _L2R2} ->
             {op, Line, Op, L1, R1};
         {Pattern, [L2, R2]} ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
@@ -376,32 +382,48 @@ fun_clauses([C0|Cs]) ->
     [C1|fun_clauses(Cs)];
 fun_clauses([]) -> [].
 
-find_record_cut_vars(Inits) ->
-    find_record_cut_vars(Inits, [], []).
+find_binary_cut_vars(BinFields) ->
+    cut_vars(
+      fun ({bin_element, _Line, {var, _Line1, '_'} = Var, _Sz, _Ty}) -> Var;
+          (_)                                                        -> nothing
+      end,
+      fun ({bin_element, Line, _Var, Sz, Type}, Var) ->
+              {bin_element, Line, Var, Sz, Type}
+      end,
+      BinFields).
 
-find_record_cut_vars([], Pattern, InitsAcc) ->
-    {lists:reverse(Pattern), lists:reverse(InitsAcc)};
-find_record_cut_vars(
-  [{record_field, Line, FieldName, {var, Line1, '_'}}|Inits],
-  Pattern, InitsAcc) ->
-    VarName = make_var_name(),
-    Var = {var, Line1, VarName},
-    find_record_cut_vars(
-      Inits, [Var|Pattern], [{record_field, Line, FieldName, Var}|InitsAcc]);
-find_record_cut_vars([Init|Inits], Pattern, InitsAcc) ->
-    find_record_cut_vars(Inits, Pattern, [Init|InitsAcc]).
+find_record_cut_vars(RecFields) ->
+    cut_vars(
+      fun ({record_field, _Line, _FName, {var, _Line1, '_'} = Var}) -> Var;
+          (_)                                                       -> nothing
+      end,
+      fun ({record_field, Line, FName, _Var}, Var) ->
+              {record_field, Line, FName, Var}
+      end,
+      RecFields).
 
 find_cut_vars(As) ->
-    find_cut_vars(As, [], []).
+    cut_vars(fun ({var, _Line, '_'} = Var) -> Var;
+                 (_)                       -> nothing
+             end,
+             fun (_, {var, _Line, _Var} = Var) -> Var end,
+             As).
 
-find_cut_vars([], Pattern, Vars) ->
-    {lists:reverse(Pattern), lists:reverse(Vars)};
-find_cut_vars([{var, Line, '_'}|As], Pattern, Vars) ->
-    VarName = make_var_name(),
-    Var = {var, Line, VarName},
-    find_cut_vars(As, [Var|Pattern], [Var|Vars]);
-find_cut_vars([A|As], Pattern, Vars) ->
-    find_cut_vars(As, Pattern, [A|Vars]).
+cut_vars(TestFun, CombFun, AstFrag) ->
+    cut_vars(TestFun, CombFun, AstFrag, [], []).
+
+cut_vars(_TestFun, _CombFun, [], Pattern, AstAcc) ->
+    {lists:reverse(Pattern), lists:reverse(AstAcc)};
+cut_vars(TestFun, CombFun, [Frag|AstFrags], Pattern, AstAcc) ->
+    case TestFun(Frag) of
+        {var, Line, '_'} ->
+            VarName = make_var_name(),
+            Var = {var, Line, VarName},
+            Frag1 = CombFun(Frag, Var),
+            cut_vars(TestFun, CombFun, AstFrags, [Var|Pattern], [Frag1|AstAcc]);
+        nothing ->
+            cut_vars(TestFun, CombFun, AstFrags, Pattern, [Frag|AstAcc])
+    end.
 
 make_var_name() ->
     VarCount = get(var_count),
