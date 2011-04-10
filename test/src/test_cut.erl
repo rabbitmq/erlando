@@ -55,11 +55,11 @@ test_cut_record() ->
     F = R#r{f3 = _, f2 = _},
     wobble = (F(orange, wobble))#r.f2,
     Getter = _#r.f2,
-    wibble = Getter(#r{}),
+    wibble = Getter(R),
     Setter = _#r{f2 = gerbil},
-    gerbil = Getter(Setter(#r{})),
+    gerbil = Getter(Setter(R)),
     Setter2 = _#r{f2 = _},
-    hamster = Getter(Setter2(#r{}, hamster)),
+    hamster = Getter(Setter2(R, hamster)),
     passed.
 
 test_cut_binary() ->
