@@ -19,42 +19,48 @@
 
 -compile(export_all).
 
-test_maybe(Arg) ->
+test_sequence() ->
+    List = lists:seq(1,5),
+    ListM = [do([maybe_m || return(N)]) || N <- List],
+    {just, List} = monad:sequence(maybe_m, ListM),
+    passed.
+
+test_join() ->
+    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
+    passed.
+
+test_maybe() ->
+    nothing = maybe(atom),
+    {just, 9} = maybe(3),
+    passed.
+
+maybe(Arg) ->
     do([maybe_m
-        || X <- return(Arg),
-           case is_atom(Arg) of
-               true  -> fail(argh);
-               false -> return(io:format("~p~n", [X]))
-           end,
-           return(ok)]).
+        || monad_plus:guard(maybe_m, is_number(Arg)),
+           return(Arg*Arg)]).
 
-test_state_t(Arg) ->
-    StateT = state_t:new(maybe_m), %% state_t wrapping of maybe monad
-    StateT:exec(
-      do([StateT
-          || S <- return(1),
-             S <- return(2),
-             foo(StateT),
-             StateT:put(some_new_state),
-             StateT:modify(fun (some_new_state) -> pi end),
-             return(io:format("~p~n",[S])),
-             return(wibble)
-         ]), Arg).
+test_fib() ->
+    true = lists:all(fun ({X, Y}) -> X =:= Y end,
+                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
+    passed.
 
-foo(StateT) ->
-    do([StateT || S <- StateT:get(),
-                  return(io:format("~p~n", [S])),
-                  StateT:put(S),
-                  return(wibble)]).
-
-test_state_t_identity() ->
+%% Classic monadic implementation of fibonnaci
+fib_m(N) ->
     StateT = state_t:new(identity_m),
-    StateT:run(
-      do([StateT
-          || X <- foo(StateT),
-             return(X)]), argh).
+    {_, R} = StateT:exec(
+               monad:sequence(StateT,
+                              lists:duplicate(N, fib_m_step(StateT))), {0, 1}),
+    R.
+
+fib_m_step(StateT) -> StateT:modify(fun ({X, Y}) -> {Y, X+Y} end).
+
+%% Classic recursive implementation of fibonnaci
+fib_rec(N) when N >= 0 -> fib_rec(N, 0, 1).
+fib_rec(0, _X, Y) -> Y;
+fib_rec(N,  X, Y) -> fib_rec(N-1, Y, X+Y).
 
 test_list() ->
+    %% Demonstrate equivalence of list comprehensions and list monad
     A = [{X,Y} || X <- "abcd",
                   Y <- [1,2]],
     A = do([list_m || X <- "abcd",
@@ -70,7 +76,8 @@ test_list() ->
                       Y <- lists:seq(X,Z),
                       monad_plus:guard(
                         list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
-                      return({X,Y,Z})]).
+                      return({X,Y,Z})]),
+    passed.
 
 test_omega() ->
     A = [{X,Y,Z} || X <- "abcd",
@@ -81,12 +88,13 @@ test_omega() ->
                        Z <- lists:seq(11,15),
                        return({X,Y,Z})]),
     true = A =/= B,
-    true = A =:= lists:usort(B).
+    true = A =:= lists:usort(B),
+    passed.
 
-test_sequence() ->
-    List = lists:seq(1,5),
-    ListM = [do([maybe_m || return(N)]) || N <- List],
-    {just, List} = monad:sequence(maybe_m, ListM).
-
-test_join() ->
-    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))).
+test() ->
+    passed = do([test_m || test_sequence(),
+                           test_join(),
+                           test_maybe(),
+                           test_fib(),
+                           test_list(),
+                           test_omega()]).
