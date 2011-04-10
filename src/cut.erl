@@ -27,10 +27,11 @@
 -export([parse_transform/2]).
 
 parse_transform(Forms, _Options) ->
-    %%io:format("~p~n", [Forms]),
+    %%io:format("Before:~n~p~n~n", [Forms]),
     put(var_count, 0),
     Forms1 = forms(Forms),
-    %%io:format("After:~n~s~n~n", [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
+    %%io:format("After:~n~s~n~n",
+    %%          [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
     Forms1.
 
 %% forms(Fs) -> lists:map(fun (F) -> form(F) end, Fs).
@@ -213,16 +214,25 @@ expr({record, Line, Name, Inits0}) ->
 expr({record_field, Line, Rec0, Name, Field0}) ->
     Rec1 = expr(Rec0),
     Field1 = expr(Field0),
-    {record_field, Line, Rec1, Name, Field1};
+    case find_cut_vars([Rec1]) of
+        {[], _Rec2} ->
+            {record_field, Line, Rec1, Name, Field1};
+        {Pattern, [Rec2]} ->
+            {'fun', Line, {clauses,
+                           [{clause, Line, Pattern, [],
+                             [{record_field, Line, Rec2, Name, Field1}]}]}}
+    end;
 expr({record, Line, Rec0, Name, Upds0}) ->
     Rec1 = expr(Rec0),
     Upds1 = record_updates(Upds0),
-    case find_record_cut_vars(Upds1) of
-        {[],     _Upds2} ->
+    Rec = find_cut_vars([Rec1]),
+    Upds = find_record_cut_vars(Upds1),
+    case {Rec, Upds} of
+        {{[], _Rec2}, {[], _Upds2}} ->
             {record, Line, Rec1, Name, Upds1};
-        {Pattern, Upds2} ->
-            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
-                                      [{record, Line, Rec1, Name, Upds2}]}]}}
+        {{Pattern1, [Rec2]}, {Pattern2, Upds2}} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern1++Pattern2, [],
+                                      [{record, Line, Rec2, Name, Upds2}]}]}}
     end;
 expr({record_field, Line, Rec0, Field0}) ->
     Rec1 = expr(Rec0),
