@@ -1,4 +1,4 @@
-{application, hstcp,
+{application, erlando,
  [{description, "Syntax extensions for Erlang"},
   {vsn, "%%VSN%%"},
   {modules, [cut,
