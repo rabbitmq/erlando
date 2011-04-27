@@ -1,4 +1,7 @@
-syntax: glob
-*.beam
-*~
-deps.mk
+\.beam$
+~$
+^build/
+^dist/
+^cover/
+^erl_crash.dump$
+^c_src/libhstcp.so$
