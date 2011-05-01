@@ -30,7 +30,7 @@ parse_transform(Forms, _Options) ->
     %%io:format("Before:~n~p~n~n", [Forms]),
     put(var_count, 0),
     Forms1 = forms(Forms),
-    %%io:format("After:~n~s~n~n",
+    %% io:format("After:~n~s~n~n",
     %%          [erl_prettypr:format(erl_syntax:form_list(Forms1))]),
     Forms1.
 
@@ -189,13 +189,31 @@ expr({cons, Line, H0, T0}) ->
                                       [{cons, Line, H2, T2}]}]}}
     end;
 expr({lc, Line, E0, Qs0}) ->
+    %% Note that it is nonsensical to allow a cut on E0, as in all
+    %% useful cases, it is defined by some expression of Qs0. Cuts are
+    %% allowed only on generators of Qs0.
     Qs1 = lc_bc_quals(Qs0),
     E1 = expr(E0),
-    {lc, Line, E1, Qs1};
+    Qs = find_comprehension_cut_vars(Qs1),
+    case Qs of
+        {[], _Qs2} ->
+            {lc, Line, E1, Qs1};
+        {Pattern, Qs2} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{lc, Line, E1, Qs2}]}]}}
+    end;
 expr({bc, Line, E0, Qs0}) ->
+    %% Notes for {lc,...} above apply here too.
     Qs1 = lc_bc_quals(Qs0),
     E1 = expr(E0),
-    {bc, Line, E1, Qs1};
+    Qs = find_comprehension_cut_vars(Qs1),
+    case Qs of
+        {[], _Qs2} ->
+            {bc, Line, E1, Qs1};
+        {Pattern, Qs2} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{bc, Line, E1, Qs2}]}]}}
+    end;
 expr({tuple, Line, Es0}) ->
     Es1 = expr_list(Es0),
     case find_cut_vars(Es1) of
@@ -206,6 +224,8 @@ expr({tuple, Line, Es0}) ->
                                       [{tuple, Line, Es2}]}]}}
     end;
 expr({record_index, Line, Name, Field0}) ->
+    %% The parser prevents Field0 from being a genuine expression, so
+    %% can't do a cut here.
     Field1 = expr(Field0),
     {record_index, Line, Name, Field1};
 expr({record, Line, Name, Inits0}) ->
@@ -241,11 +261,13 @@ expr({record, Line, Rec0, Name, Upds0}) ->
                                       [{record, Line, Rec2, Name, Upds2}]}]}}
     end;
 expr({record_field, Line, Rec0, Field0}) ->
+    %% This only occurs within an mnesia query, let's not cut here
     Rec1 = expr(Rec0),
     Field1 = expr(Field0),
     {record_field, Line, Rec1, Field1};
 expr({block, Line, Es0}) ->
     %% Unfold block into a sequence.
+    %% Nonsensical to allow cuts here.
     Es1 = exprs(Es0),
     {block, Line, Es1};
 expr({'if', Line, Cs0}) ->
@@ -254,7 +276,13 @@ expr({'if', Line, Cs0}) ->
 expr({'case', Line, E0, Cs0}) ->
     E1 = expr(E0),
     Cs1 = icr_clauses(Cs0),
-    {'case', Line, E1, Cs1};
+    case find_cut_vars([E1]) of
+        {[], _E2} ->
+            {'case', Line, E1, Cs1};
+        {Pattern, [E2]} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{'case', Line, E2, Cs1}]}]}}
+    end;
 expr({'receive', Line, Cs0}) ->
     Cs1 = icr_clauses(Cs0),
     {'receive', Line, Cs1};
@@ -264,6 +292,13 @@ expr({'receive', Line, Cs0, To0, ToEs0}) ->
     Cs1 = icr_clauses(Cs0),
     {'receive', Line, Cs1, To1, ToEs1};
 expr({'try', Line, Es0, Scs0, Ccs0, As0}) ->
+    %% It doesn't make sense to allow a cut on Es0 (the main
+    %% expression) because it would have to be evaluated as an arg to
+    %% the function, and thus would never be caught.  Further, it
+    %% doesn't even make sense to allow cuts in the after, because the
+    %% only reason for using an after is for being able to side-effect
+    %% in there, and again, it would have to be evaluated as an arg to
+    %% the function. So no cuts at all allowed in try.
     Es1 = exprs(Es0),
     Scs1 = icr_clauses(Scs0),
     Ccs1 = icr_clauses(Ccs0),
@@ -280,26 +315,33 @@ expr({'fun', Line, Body}) ->
             {'fun', Line, {function, M, F, A}}
     end;
 expr({call, Line, F0, As0}) ->
-    %% N.B. If F an atom then call to local function or BIF,  if F a
+    %% N.B. If F an atom then call to local function or BIF, if F a
     %% remote structure (see below) then call to other module,
     %% otherwise apply to "function".
+    %%
+    %% If F0 is a remote call then we want to allow cuts, but we don't
+    %% want F0 to end up forming a separate function. Thus we have
+    %% find_call_cut_vars and we brings cuts from within that up here.
     F1 = expr(F0),
     As1 = expr_list(As0),
-    case find_cut_vars(As1) of
-        {[], _As2} ->
+    F = find_call_cut_vars(F1),
+    As = find_cut_vars(As1),
+    case {F, As} of
+        {{[], _F2}, {[], _As2}} ->
             {call, Line, F1, As1};
-        {Pattern, As2} ->
-            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
-                                      [{call, Line, F1, As2}]}]}}
+        {{Pattern1, [F2]}, {Pattern2, As2}} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern1++Pattern2, [],
+                                      [{call, Line, F2, As2}]}]}}
     end;
 expr({'catch', Line, E0}) ->
     %% No new variables added.
+    %% See 'try' above for reasoning around no cuts here.
     E1 = expr(E0),
     {'catch', Line, E1};
-expr({'query',  Line,  E0}) ->
+expr({'query', Line, E0}) ->
     %% lc expression
-    E = expr(E0),
-    {'query',  Line,  E};
+    E1 = expr(E0),
+    {'query', Line, E1};
 expr({match, Line, P0, E0}) ->
     E1 = expr(E0),
     P1 = pattern(P0),
@@ -334,6 +376,7 @@ expr({op, Line, Op, L0, R0}) ->
     end;
 %% The following are not allowed to occur anywhere!
 expr({remote, Line, M0, F0}) ->
+    %% see {call,...} for why cuts aren't here.
     M1 = expr(M0),
     F1 = expr(F0),
     {remote, Line, M1, F1}.
@@ -430,6 +473,38 @@ find_record_cut_vars(RecFields) ->
               {record_field, Line, FName, Var}
       end,
       RecFields).
+
+find_comprehension_cut_vars(Qs) ->
+    cut_vars(
+      fun ({generate,   _Line, _P0, {var, _Line1, '_'} = Var}) -> [Var];
+          ({generate,   _Line, _P0, _E0})                      -> [];
+          ({b_generate, _Line, _P0, {var, _Line1, '_'} = Var}) -> [Var];
+          ({b_generate, _Line, _P0, _E0})                      -> [];
+          ({var, _Line, '_'} = Var)                            -> [Var];
+          (_)                                                  -> []
+      end,
+      fun ({generate,   Line, P0, _Var}, [Var]) -> {generate, Line, P0, Var};
+          ({b_generate, Line, P0, _Var}, [Var]) -> {b_generate, Line, P0, Var};
+          ({var, _Line, _Var},           [Var]) -> Var
+      end,
+      Qs).
+
+find_call_cut_vars(F) ->
+    cut_vars(
+      fun ({remote, _Line, M0, F0}) -> [V || V = {var, _Line1, '_'} <- [M0,F0]];
+          ({var, _Line, '_'} = Var) -> [Var];
+          (_)                       -> []
+      end,
+      fun ({remote, Line, M0, F0}, Vars) ->
+              {[M1, F1], []} =
+                  lists:foldr(
+                    fun ({var, _Line, '_'}, {Res, [V|Vs]}) -> {[V|Res], Vs};
+                        (V,                 {Res, Vs})     -> {[V|Res], Vs}
+                    end, {[], Vars}, [M0, F0]),
+              {remote, Line, M1, F1};
+          ({var, _Line, _Var}, [Var]) -> Var
+      end,
+      [F]).
 
 find_cut_vars(As) ->
     cut_vars(fun ({var, _Line, '_'} = Var) -> [Var];
