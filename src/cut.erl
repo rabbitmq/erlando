@@ -181,7 +181,13 @@ expr({nil, Line})        -> {nil, Line};
 expr({cons, Line, H0, T0}) ->
     H1 = expr(H0),
     T1 = expr(T0), %% They see the same variables
-    {cons, Line, H1, T1};
+    case find_cut_vars([H1, T1]) of
+        {[], _H2T2} ->
+            {cons, Line, H1, T1};
+        {Pattern, [H2, T2]} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{cons, Line, H2, T2}]}]}}
+    end;
 expr({lc, Line, E0, Qs0}) ->
     Qs1 = lc_bc_quals(Qs0),
     E1 = expr(E0),

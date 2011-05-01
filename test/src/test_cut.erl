@@ -70,10 +70,16 @@ test_cut_binary() ->
     <<1:1/unsigned, 1:1/unsigned, 1:1/unsigned, 1:1/unsigned>> = G(4),
     passed.
 
+test_cut_list() ->
+    F = [_|_],
+    [a,b] = F(a,[b]),
+    passed.
+
 test() ->
     passed = do([test_m || test_cut(),
                            test_cut_op(),
                            test_cut_unary_op(),
                            test_cut_tuple(),
                            test_cut_record(),
-                           test_cut_binary()]).
+                           test_cut_binary(),
+                           test_cut_list()]).
