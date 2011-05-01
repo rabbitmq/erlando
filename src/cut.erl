@@ -480,12 +480,10 @@ find_comprehension_cut_vars(Qs) ->
           ({generate,   _Line, _P0, _E0})                      -> [];
           ({b_generate, _Line, _P0, {var, _Line1, '_'} = Var}) -> [Var];
           ({b_generate, _Line, _P0, _E0})                      -> [];
-          ({var, _Line, '_'} = Var)                            -> [Var];
           (_)                                                  -> []
       end,
       fun ({generate,   Line, P0, _Var}, [Var]) -> {generate, Line, P0, Var};
-          ({b_generate, Line, P0, _Var}, [Var]) -> {b_generate, Line, P0, Var};
-          ({var, _Line, _Var},           [Var]) -> Var
+          ({b_generate, Line, P0, _Var}, [Var]) -> {b_generate, Line, P0, Var}
       end,
       Qs).
 
