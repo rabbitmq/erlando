@@ -18,11 +18,29 @@
 -compile({parse_transform, cut}).
 -compile({parse_transform, erlando}).
 
--compile(export_all).
+%% test framework invocation
+-export([test/0]).
+
+%% detail for test_cut external module call
+-export([foo/5]).
 
 -record(r, { f1 = false,
              f2 = wibble,
              f3 = juice }).
+
+test_cut_nested() ->
+    F = fun1(1, fun2(1+_), _),
+    %% should be:
+    %% F = \X • fun1(1, fun2(\Y • 1+Y), X)
+    ok = F(3),
+    passed.
+
+fun1(N,M,L) -> case N+M of
+                    L -> ok;
+                    _ -> nope
+                end.
+
+fun2(Nf) -> Nf(1).
 
 test_cut() ->
     F0 = foo(a, b, _, 5+6, _),
@@ -106,7 +124,8 @@ test_cut_comprehensions() ->
     passed.
 
 test() ->
-    passed = do([test_m || test_cut(),
+    passed = do([test_m || test_cut_nested(),
+                           test_cut(),
                            test_cut_op(),
                            test_cut_unary_op(),
                            test_cut_tuple(),
