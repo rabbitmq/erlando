@@ -42,11 +42,20 @@ forms([F0|Fs0]) ->
     [F1|Fs1];
 forms([]) -> [].
 
+%% -type form(Form) -> Form.
+
+form({attribute,Line,Attr,Val}) ->      %The general attribute.
+    {attribute,Line,Attr,Val};
 form({function,Line,Name0,Arity0,Clauses0}) ->
     {Name,Arity,Clauses} = function(Name0, Arity0, Clauses0),
     {function,Line,Name,Arity,Clauses};
-form(Other) ->
-    Other.
+% Mnemosyne, ignore...
+form({rule,Line,Name,Arity,Body}) ->
+    {rule,Line,Name,Arity,Body}; % Dont dig into this
+%% Extra forms from the parser.
+form({error,E}) -> {error,E};
+form({warning,W}) -> {warning,W};
+form({eof,Line}) -> {eof,Line}.
 
 %% -type function(atom(), integer(), [Clause]) -> {atom(),integer(),[Clause]}.
 
@@ -65,15 +74,6 @@ clauses([]) -> [].
 
 clause({clause, Line, Head, Guard, Body}) ->
     {clause, Line, Head, Guard, exprs(Body)}.
-
-%% -type exprs([Expression]) -> [Expression].
-%%  These expressions are processed "sequentially" for purposes of variable
-%%  definition etc.
-
-exprs([E0|Es]) ->
-    E1 = expr(E0),
-    [E1|exprs(Es)];
-exprs([]) -> [].
 
 %% -type pattern(Pattern) -> Pattern.
 %%  N.B. Only valid patterns are included here.
@@ -143,8 +143,7 @@ bit_types([]) ->
     [];
 bit_types([Atom | Rest]) when is_atom(Atom) ->
     [Atom | bit_types(Rest)];
-bit_types([{Atom, Integer} | Rest])
-  when is_atom(Atom) andalso is_integer(Integer) ->
+bit_types([{Atom, Integer} | Rest]) when is_atom(Atom), is_integer(Integer) ->
     [{Atom, Integer} | bit_types(Rest)].
 
 
@@ -168,6 +167,15 @@ pattern_fields([{record_field,Lf,{var,La,'_'},P0}|Pfs]) ->
     P1 = pattern(P0),
     [{record_field,Lf,{var,La,'_'},P1}|pattern_fields(Pfs)];
 pattern_fields([]) -> [].
+
+%% -type exprs([Expression]) -> [Expression].
+%%  These expressions are processed "sequentially" for purposes of variable
+%%  definition etc.
+
+exprs([E0|Es]) ->
+    E1 = expr(E0),
+    [E1|exprs(Es)];
+exprs([]) -> [].
 
 %% -type expr(Expression) -> Expression.
 
@@ -223,6 +231,9 @@ expr({tuple, Line, Es0}) ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
                                       [{tuple, Line, Es2}]}]}}
     end;
+%%expr({struct,Line,Tag,Es0}) ->
+%%    Es1 = pattern_list(Es0),
+%%    {struct,Line,Tag,Es1};
 expr({record_index, Line, Name, Field0}) ->
     %% The parser prevents Field0 from being a genuine expression, so
     %% can't do a cut here.
