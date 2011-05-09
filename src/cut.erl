@@ -186,13 +186,16 @@ expr({atom, Line, A})    -> {atom, Line, A};
 expr({string, Line, S})  -> {string, Line, S};
 expr({char, Line, C})    -> {char, Line, C};
 expr({nil, Line})        -> {nil, Line};
-expr({cons, Line, H0, T0}) ->
-    H1 = expr(H0),
-    T1 = expr(T0), %% They see the same variables
-    case find_cut_vars([H1, T1]) of
-        {[], _H2T2} ->
+expr({cons, Line, H0, T0} = Cons) ->
+    %% We need to find cut vars in T0 _before_ recursing.
+    case find_cons_cut_vars([Cons], T0) of
+        {[], _H1T1} ->
+            H1 = expr(H0),
+            T1 = expr(T0), %% They see the same variables
             {cons, Line, H1, T1};
-        {Pattern, [H2, T2]} ->
+        {Pattern, {cons, Line, H1, T1}} ->
+            H2 = expr(H1),
+            T2 = expr(T1),
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
                                       [{cons, Line, H2, T2}]}]}}
     end;
@@ -514,6 +517,28 @@ find_call_cut_vars(F) ->
           ({var, _Line, _Var}, [Var]) -> Var
       end,
       [F]).
+
+find_cons_cut_vars(HeadsRev, {cons, _Line, _Head, Tail} = Cons) ->
+    find_cons_cut_vars([Cons | HeadsRev], Tail);
+find_cons_cut_vars(HeadsRev, Other) ->
+    Heads = lists:reverse([Other|HeadsRev]),
+    {Pattern, Heads1} =
+        cut_vars(
+          fun ({cons, _Line, {var, _Line1, '_'} = Var, _Tail}) -> [Var];
+              ({var, _Line, '_'} = Var)                        -> [Var];
+              (_)                                              -> []
+          end,
+          fun ({cons, Line, {var, _Line1, '_'}, Tail}, [Var]) ->
+                  {cons, Line, Var, Tail};
+              ({var, _Line, '_'}, [Var]) ->
+                  Var
+          end,
+          Heads),
+    {Pattern,
+     lists:foldr(
+       fun ({cons, Line, Head, _Tail}, Tail) -> {cons, Line, Head, Tail};
+           (Tail, undefined)                 -> Tail
+       end, undefined, Heads1)}.
 
 find_cut_vars(As) ->
     cut_vars(fun ({var, _Line, '_'} = Var) -> [Var];

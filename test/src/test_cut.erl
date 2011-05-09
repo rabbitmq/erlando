@@ -101,6 +101,8 @@ test_cut_binary() ->
 test_cut_list() ->
     F = [_|_],
     [a,b] = F(a,[b]),
+    G = [_, _ | [33]],
+    [a,b,33] = G(a,b),
     passed.
 
 test_cut_case() ->
