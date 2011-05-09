@@ -25,7 +25,7 @@
 -spec(sequence/2 :: (atom(), [monad(A)]) -> monad([A])).
 -endif.
 
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 
 behaviour_info(callbacks) ->
     [{'>>=',  2},

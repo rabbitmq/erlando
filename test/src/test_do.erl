@@ -15,7 +15,7 @@
 %%
 
 -module(test_do).
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 
 -compile(export_all).
 

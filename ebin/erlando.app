@@ -2,7 +2,7 @@
  [{description, "Syntax extensions for Erlang"},
   {vsn, "%%VSN%%"},
   {modules, [cut,
-             erlando,
+             do,
              error_m,
              identity_m,
              list_m,
