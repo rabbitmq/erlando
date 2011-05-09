@@ -21,7 +21,7 @@
 %% AB. All Rights Reserved.''
 %%
 
--module(erlando).
+-module(do).
 
 -export([parse_transform/2]).
 

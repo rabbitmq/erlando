@@ -15,7 +15,7 @@
 %%
 
 -module(state_t, [InnerMonad]).
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).

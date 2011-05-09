@@ -16,7 +16,7 @@
 
 -module(test_cut).
 -compile({parse_transform, cut}).
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 
 %% test framework invocation
 -export([test/0]).
