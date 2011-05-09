@@ -28,20 +28,6 @@
              f2 = wibble,
              f3 = juice }).
 
-test_cut_nested() ->
-    F = fun1(1, fun2(1+_), _),
-    %% should be:
-    %% F = \X • fun1(1, fun2(\Y • 1+Y), X)
-    ok = F(3),
-    passed.
-
-fun1(N,M,L) -> case N+M of
-                    L -> ok;
-                    _ -> nope
-                end.
-
-fun2(Nf) -> Nf(1).
-
 test_cut() ->
     F0 = foo(a, b, _, 5+6, _),
     F1 = F0(_, e),
@@ -56,6 +42,16 @@ test_cut() ->
     passed.
 
 foo(a, b, c, 11, e) -> ok.
+
+test_cut_nested() ->
+    F = f1(1, f2(1 + _), _),
+    %% should be:
+    %% F = \X -> f1(1, f2(\Y -> 1 + Y), X)
+    ok = F(3),
+    passed.
+
+f1(N, M, L) when N + M =:= L -> ok.
+f2(Nf) -> Nf(1).
 
 test_cut_op() ->
     F = 1 + _,
@@ -124,8 +120,8 @@ test_cut_comprehensions() ->
     passed.
 
 test() ->
-    passed = do([test_m || test_cut_nested(),
-                           test_cut(),
+    passed = do([test_m || test_cut(),
+                           test_cut_nested(),
                            test_cut_op(),
                            test_cut_unary_op(),
                            test_cut_tuple(),
