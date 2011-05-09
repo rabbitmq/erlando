@@ -83,6 +83,13 @@ test_cut_record() ->
     hamster = Getter(Setter2(R, hamster)),
     passed.
 
+test_cut_record_nested() ->
+    F = #r{f1 = #r{f1 = _, f3 = _}, f2 = _},
+    R = F(apple),
+    F1 = R#r.f1,
+    #r{f1 = orange, f3 = banana} = F1(orange, banana),
+    passed.
+
 test_cut_binary() ->
     <<"AbA", _/binary>> = (<<65, _, 65>>)($b),
     F = <<_:_>>,
@@ -126,6 +133,7 @@ test() ->
                            test_cut_unary_op(),
                            test_cut_tuple(),
                            test_cut_record(),
+                           test_cut_record_nested(),
                            test_cut_binary(),
                            test_cut_list(),
                            test_cut_case(),
