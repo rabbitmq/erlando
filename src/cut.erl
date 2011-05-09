@@ -122,8 +122,7 @@ pattern({op,Line,Op,A}) ->
 pattern({op,Line,Op,L,R}) ->
     {op,Line,Op,L,R}.
 
-pattern_grp([BE = {bin_element,L1,E1,S1,T1} | Fs]) ->
-    %%io:format("bin_element:~n~p~n", [BE]),
+pattern_grp([{bin_element,L1,E1,S1,T1} | Fs]) ->
     S2 = case S1 of
              default ->
                  default;
@@ -136,9 +135,7 @@ pattern_grp([BE = {bin_element,L1,E1,S1,T1} | Fs]) ->
              _ ->
                  bit_types(T1)
          end,
-    BE2 = {bin_element,L1,expr(E1),S2,T2},
-    %%io:format("      after:~n~p~n~n", [BE2]),
-    [ BE2 | pattern_grp(Fs)];
+    [{bin_element,L1,expr(E1),S2,T2} | pattern_grp(Fs)];
 pattern_grp([]) ->
     [].
 
