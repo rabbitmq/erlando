@@ -227,7 +227,7 @@ effect, as they're already fully evaluated by that point.
 
 The Do parse transformer permits Haskell-style *do-notation* in
 Erlang, which makes using monads, and monad transformers possible and
-easy. With *do-notation*, monads tend to look like a lot of line
+easy. Without *do-notation*, monads tend to look like a lot of line
 noise.
 
 
