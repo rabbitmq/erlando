@@ -179,7 +179,7 @@ tail of a list is **only** defined following a `|`. Following a `,`,
 you're just defining another list element.
 
     F = [_, [_]],
-    %% This is **not** the same as [_, _]
+    %% This is **not** the same as [_, _] or its synonym: [_ | [_]]
     [a, G] = F(a),
     [b] = G(b).
 
