@@ -192,7 +192,7 @@ you're just defining another list element.
         GetZ = _#vector.z,
         7 = GetZ(#vector { z = 7 }),
         SetX = _#vector{x = _},
-        V = #vector{ x = 3, y = 4 } = SetX(#vector{ y = 4 }, 7).
+        V = #vector{ x = 5, y = 4 } = SetX(#vector{ y = 4 }, 5).
 
 
 #### Case
