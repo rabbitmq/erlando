@@ -8,13 +8,13 @@ Erlando is a set of syntax extensions for Erlang. Currently it
 consists of two syntax extensions, both of which take the form of
 [parse transformers](http://www.erlang.org/doc/man/erl_id_trans.html).
 
-* [**Cut**](#cut): This adds support for cuts to Erlang. These are
+* **Cut**: This adds support for cuts to Erlang. These are
   inspired by the
   [Scheme form of cuts](http://srfi.schemers.org/srfi-26/srfi-26.html). Cuts
   can be thought of as a light-weight form of abstraction, with
   similarities to partial application (or currying).
 
-* [**Do**](#do): This adds support for do-syntax and monads to
+* **Do**: This adds support for do-syntax and monads to
   Erlang. These are heavily inspired by [Haskell](http://haskell.org),
   and the monads and libraries are near-mechanical translations from
   the Haskell GHC libraries.
@@ -46,7 +46,7 @@ the order of the parse transforms: I've found that the
 
 
 
-## Cut {#cut}
+## Cut
 
 ### Motivation
 
@@ -223,7 +223,7 @@ effect, as they're already fully evaluated by that point.
 
 
 
-## Do {#do}
+## Do
 
 The Do parse transformer permits Haskell-style *do-notation* in
 Erlang, which makes using monads, and monad transformers possible and
