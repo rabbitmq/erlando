@@ -335,7 +335,7 @@ others are:
             A <- bar(),
             ok]).
 
-  is transformed into
+    is transformed into
 
         Monad:'>>'(foo(),
                    fun () -> Monad:'>>='(bar(),
