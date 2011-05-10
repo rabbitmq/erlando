@@ -71,6 +71,7 @@ rewritten as:
     my_fun(A, B, C) ->
         with_resource(A, my_resource_modification(_, B, C)).
 
+
 ### Definition
 
 Normally, the variable `_` can only occur in patterns: i.e. where
@@ -139,10 +140,12 @@ issues!
 Cuts are not limited to function calls. They can be used in any
 expression where they make sense:
 
+
 #### Tuples
 
     F = {_, 3},
     {a, 3} = F(a).
+
 
 #### Lists
 
@@ -151,6 +154,35 @@ expression where they make sense:
     test() ->
         F = dbl_cons([33]),
         [7, 8, 33] = F(7, 8).
+
+Note that if you nest a list as a list tail in Erlang, it's still
+treated as one expression. For example:
+
+    A = [a, b | [c, d | [e]]]
+
+is exactly the same (right from the Erlang parser onwards) as:
+
+    A = [a, b, c, d, e]
+
+I.e. those sub-lists, when they're in the tail position **do not**
+form subexpressions. Thus:
+
+    F = [1, _, _, [_], 5 | [6, [_] | [_]]],
+    %% This is the same as:
+    %%  [1, _, _, [_], 5, 6, [_], _]
+    [1, 2, 3 , G, 5, 6, H, 8] = F(2, 3, 8),
+    [4] = G(4),
+    [7] = H(7).
+
+However, be very clear about the difference between `,` and `|`: the
+tail of a list is **only** defined following a `|`. Following a `,`,
+you're just defining another list element.
+
+    F = [_, [_]],
+    %% This is **not** the same as [_, _]
+    [a, G] = F(a),
+    [b] = G(b).
+
 
 #### Records
 
@@ -162,6 +194,7 @@ expression where they make sense:
         SetX = _#vector{x = _},
         V = #vector{ x = 3, y = 4 } = SetX(#vector{ y = 4 }, 7).
 
+
 #### Case
 
     F = case _ of
@@ -171,9 +204,11 @@ expression where they make sense:
     10 = F(5),
     ok = F(ok).
 
+
 See
 [test_cut.erl](http://hg.rabbitmq.com/erlando/file/default/test/src/test_cut.erl)
-for more examples.
+for more examples, including use of cuts in list comprehensions and
+binary construction.
 
 Note that cuts are not allowed where the result of the cut can only be
 useful by interacting with the evaluation scope. For example:
@@ -183,6 +218,7 @@ useful by interacting with the evaluation scope. For example:
 This is not allowed, because the arguments to `F` would have to be
 evaluated before the invocation of its body, which would then have no
 effect, as they're already fully evaluated by that point.
+
 
 
 License
