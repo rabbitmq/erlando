@@ -105,7 +105,7 @@ It is fine to use multiple cuts in the same expression, and the
 arguments to the created abstraction will match the order in which the
 `_` var is found in the expression. For example:
 
-    assert_sum_3(X, Y, Z, Sum) when X + Y + Z == S -> ok;
+    assert_sum_3(X, Y, Z, Sum) when X + Y + Z == Sum -> ok;
     assert_sum_3(_X, _Y, _Z, _Sum) -> {error, not_sum}.
     
     test() ->
@@ -140,9 +140,8 @@ This is because the cut creates `fun (X) -> f1(io:format("test line
 1~n"), X) end`. Thus it is clear that `X` must be evaluated first,
 before the `fun` can be invoked.
 
-Of course, I'm sure no one is crazy enough to have side-effects in
-function argument expressions, so I doubt this will ever cause any
-issues!
+Of course, no one would be crazy enough to have side-effects in
+function argument expressions, so this will never cause any issues!
 
 Cuts are not limited to function calls. They can be used in any
 expression where they make sense:
