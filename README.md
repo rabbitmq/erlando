@@ -84,8 +84,8 @@ heads. For example:
     {_, bar} = {foo, bar}.
 
 Cut uses `_` in expressions to indicate where abstraction should
-occur. Abstraction from cuts is __always__ performed on the
-_shallowest_ enclosing expression. For example:
+occur. Abstraction from cuts is **always** performed on the
+*shallowest* enclosing expression. For example:
 
     list_to_binary([1, 2, math:pow(2, _)]).
 
@@ -233,6 +233,8 @@ noise.
 
 ### The Inevitable Monad Tutorial
 
+#### The Mechanics of a Comma
+
 What follows is a very brief and mechanical introduction to monads. It
 differs from a lot of the Haskell monad tutorials, because they tend
 to view monads as a means of achieving sequencing of operations in
@@ -296,7 +298,7 @@ which is readable and straightforward, but is transformed into:
 
     Monad:'>>='(foo(),
                 fun (A) -> Monad:'>>='(bar(A, dog),
-                                       fun (B) -> ok end))
+                                       fun (B) -> ok end)).
 
 There is no intention that this latter form is any more readable than
 the `comma/2` form - it is not. However, it should be clear that the
@@ -304,6 +306,102 @@ function `Monad:'>>='/2` now has complete control over what happens:
 does the fun on the right hand side ever get invoked? If so, with what
 value?
 
+
+#### Lots of different types of Monads
+
+So now that we have some relatively nice syntax for using monads, what
+can we do with them? Also, in the code
+
+    do([Monad ||
+        A <- foo(),
+        B <- bar(A, dog),
+        ok]).
+
+what are the possible values of Monad?
+
+The answer to the first question is *almost anything*; and to the
+later question, is *any module name that implements the monad
+behaviour*.
+
+Above, we covered one of the four monadic operators, `>>=/2`. The
+others are:
+
+* `>>/2`: This is exactly the same as `>>=/2`, except there is no
+  variable to bind. E.g.
+    do([Monad ||
+        foo(),
+        A <- bar(),
+        ok]).
+  is transformed into
+    Monad:'>>'(foo(),
+               fun () -> Monad:'>>='(bar(),
+                                     fun (A) -> ok end)).
+
+* `return/1`: This *lifts* a value into the monad. We'll see examples
+  of this shortly.
+
+* `fail/1`: This takes a string, describing the error encountered, and
+  informs whichever monad currently in use that some sort of error has
+  occured.
+
+Note that within *do-notation*, any function call to functions named
+`return` or `fail`, are automatically rewritten to invoke `return` or
+`fail` within the current monad.
+
+The simplest monad possible is the Identity monad:
+
+    -module(identity_m).
+    -behaviour(monad).
+    -export(['>>='/2, '>>'/2, return/1, fail/1]).
+
+    '>>='(X, Fun) -> Fun(X).
+    '>>'(_X, Fun) -> Fun().
+    return(X)     -> X.
+    fail(X)       -> throw({error, X}).
+
+This makes our programmatic comma behave just like Erlang's comma
+normally does. The two sequencing combinators (`>>/2` and `>>=/2`) do
+not inspect the values passed to them, and always invoke the
+subsequent expression fun.
+
+What could we do if we did inspect the values passed to the sequencing
+combinators? One possibility results in the Maybe monad:
+
+    -module(maybe_m).
+    -behaviour(monad).
+    -export(['>>='/2, '>>'/2, return/1, fail/1]).
+    
+    '>>='({just, X}, Fun) -> Fun(X);
+    '>>='(nothing,  _Fun) -> nothing.
+    
+    '>>'({just, _X}, Fun) -> Fun();
+    '>>'(nothing,   _Fun) -> nothing.
+    
+    return(X) -> {just, X}.
+    fail(_X)  -> nothing.
+
+Thus if the result of the preceding expression is `nothing`, then the
+subsequent expressions are not evaluated. This means that we can write
+very neat looking code which immediately stops should any failure be
+encountered.
+
+    if_safe_div_zero(X, Y, Fun) ->
+        do([maybe_m ||
+            Result <- case Y == 0 of
+                          true  -> fail("Cannot divide by zero");
+                          false -> return(X / Y)
+                      end,
+            return(Fun(Result))]).
+
+If `Y` is equal to 0, then `Fun` will not be invoked, and the result
+of the `if_safe_div_zero` function call will be `nothing`. If `Y` is
+not equal to 0, then the result of the `if_safe_div_zero` function
+call will be `{just, Fun(X / Y)}`.
+
+We see here that within the do-block, there is no mention of `nothing`
+or `just`: they are abstracted away by the Maybe-monad. As a result,
+it is possible to change the monad in use, without having to rewrite
+any further code.
 
 
 ## License
