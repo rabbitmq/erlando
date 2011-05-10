@@ -317,7 +317,7 @@ can we do with them? Also, in the code
         B <- bar(A, dog),
         ok]).
 
-what are the possible values of Monad?
+what are the possible values of `Monad`?
 
 The answer to the first question is *almost anything*; and to the
 later question, is *any module name that implements the monad
@@ -328,14 +328,17 @@ others are:
 
 * `>>/2`: This is exactly the same as `>>=/2`, except there is no
   variable to bind. E.g.
-    do([Monad ||
-        foo(),
-        A <- bar(),
-        ok]).
+
+        do([Monad ||
+            foo(),
+            A <- bar(),
+            ok]).
+
   is transformed into
-    Monad:'>>'(foo(),
-               fun () -> Monad:'>>='(bar(),
-                                     fun (A) -> ok end)).
+
+        Monad:'>>'(foo(),
+                   fun () -> Monad:'>>='(bar(),
+                                         fun (A) -> ok end)).
 
 * `return/1`: This *lifts* a value into the monad. We'll see examples
   of this shortly.
