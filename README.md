@@ -238,10 +238,11 @@ noise.
 What follows is a brief and mechanical introduction to monads. It
 differs from a lot of the Haskell monad tutorials, because they tend
 to view monads as a means of achieving sequencing of operations in
-Haskell, which is a lazy language. Erlang is not a lazy language, but
-the powerful abstractions possible from using monads are still very
-worthwhile. Whilst this is a very mechanical tutorial, it should be
-possible to see the more advanced abstractions possible.
+Haskell, which is challenging because Haskell is a lazy
+language. Erlang is not a lazy language, but the powerful abstractions
+possible from using monads are still very worthwhile. Whilst this is a
+very mechanical tutorial, it should be possible to see the more
+advanced abstractions possible.
 
 Let's say we have the three lines of code:
 
