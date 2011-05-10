@@ -31,6 +31,7 @@ To use any of these parse transformers, you must add the necessary
 
     -module(test).
     -compile({parse_transform, cut}).
+    -compile({parse_transform, do}).
     ...
 
 Then, when compiling `test.erl`, you must ensure `erlc` can locate
@@ -38,7 +39,13 @@ Then, when compiling `test.erl`, you must ensure `erlc` can locate
 `-pz` argument. For example:
 
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/cut.erl
+    erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/do.erl
     erlc -Wall +debug_info -I ./include -pa test/ebin -pa ./ebin -o test/ebin test/src/test.erl
+
+Note, if you're using QLC, you may find you need to be careful as to
+the order of the parse transforms: I've found that the
+`-compile({parse_transform, cut}).` must occur before the
+`-include_lib("stdlib/include/qlc.hrl").`
 
 
 
@@ -165,7 +172,7 @@ is exactly the same (right from the Erlang parser onwards) as:
     A = [a, b, c, d, e]
 
 I.e. those sub-lists, when they're in the tail position **do not**
-form subexpressions. Thus:
+form sub-expressions. Thus:
 
     F = [1, _, _, [_], 5 | [6, [_] | [_]]],
     %% This is the same as:
@@ -223,6 +230,85 @@ effect, as they're already fully evaluated by that point.
 
 Do {#do}
 --------
+
+The Do parse transformer permits Haskell-style *do-notation* in
+Erlang, which makes using monads, and monad transformers possible and
+easy. With *do-notation*, monads tend to look like a lot of line
+noise.
+
+
+### The Inevitable Monad Tutorial
+
+What follows is a very brief and mechanical introduction to monads. It
+differs from a lot of the Haskell monad tutorials, because they tend
+to view monads as a means of achieving sequencing of operations in
+Haskell, which is a lazy language. Erlang is not a lazy language, but
+the powerful abstractions possible from using monads are still very
+worthwhile. Whilst this is a very mechanical tutorial, it should be
+possible to see the more advanced abstractions possible.
+
+Let's say we have the three lines of code:
+
+    A = foo(),
+    B = bar(A, dog),
+    ok.
+
+They are three, simple statements, which are evaluated
+consecutively. What a monad gives you is control over what happens
+between the statements: in Erlang, it is a programmatic comma.
+
+If you wanted to implement a programmatic comma, how would you do it?
+You might start with something like:
+
+    A = foo(),
+    comma(),
+    B = bar(A, dog),
+    comma(),
+    ok.
+
+But that's not quite powerful enough, because unless `comma/0` throws
+some sort of exception, it can't actually stop the subsequent
+expression from being evaluated. Most of the time we'd probably like
+the `comma/0` function to be able to act on some variables which are
+currently in scope, and that's not possible here either. So we should
+extend the function `comma/0` so that it takes the result of the
+preceding expression, and can choose whether or not the subsequent
+expressions should be evaluated:
+
+    comma(foo(),
+          fun (A) -> comma(bar(A, dog),
+                           fun (B) -> ok end)).
+
+Thus the function `comma/2` takes all results from the previous
+expression, and controls how and whether they are passed to the next
+expression.
+
+As defined, the `comma/2` function is the monadic function `>>=/2`.
+
+Now it's pretty difficult to read the program with the `comma/2`
+function (especially as Erlang annoyingly doesn't allow us to define
+new infix functions), which is why some special syntax is
+necessary. Haskell has it's *do-notation*, and so we've borrowed from
+that and abused Erlang's list comprehensions. Haskell also has lovely
+type-classes, which we've sort of faked specifically for monads. So,
+with the Do parse transformer, you can write in Erlang:
+
+    do([Monad ||
+        A <- foo(),
+        B <- bar(A, dog),
+        ok]).
+
+which is readable and straightforward, but is transformed into:
+
+    Monad:'>>='(foo(),
+                fun (A) -> Monad:'>>='(bar(A, dog),
+                                       fun (B) -> ok end))
+
+There is no intention that this latter form is any more readable than
+the `comma/2` form - it is not. However, it should be clear that the
+function `Monad:'>>='/2` now has complete control over what happens:
+does the fun on the right hand side ever get invoked? If so, with what
+value?
 
 
 
