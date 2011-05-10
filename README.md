@@ -1,10 +1,8 @@
-Erlando
-=======
+# Erlando
 
 
 
-Introduction
-------------
+## Introduction
 
 Erlando is a set of syntax extensions for Erlang. Currently it
 consists of two syntax extensions, both of which take the form of
@@ -15,7 +13,7 @@ consists of two syntax extensions, both of which take the form of
   [Scheme form of cuts](http://srfi.schemers.org/srfi-26/srfi-26.html). Cuts
   can be thought of as a light-weight form of abstraction, with
   similarities to partial application (or currying).
-    
+
 * [**Do**](#do): This adds support for do-syntax and monads to
   Erlang. These are heavily inspired by [Haskell](http://haskell.org),
   and the monads and libraries are near-mechanical translations from
@@ -23,8 +21,7 @@ consists of two syntax extensions, both of which take the form of
 
 
 
-Use
----
+## Use
 
 To use any of these parse transformers, you must add the necessary
 `-compile` attributes to your Erlang source files. For example:
@@ -49,8 +46,7 @@ the order of the parse transforms: I've found that the
 
 
 
-Cut {#cut}
-----------
+## Cut {#cut}
 
 ### Motivation
 
@@ -64,7 +60,7 @@ like:
             {ok, R}          -> Fun(R);
             {error, _} = Err -> Err
         end.
-    
+
     my_fun(A, B, C) ->
         with_resource(A, fun (Resource) ->
                              my_resource_modification(Resource, B, C)
@@ -227,8 +223,7 @@ effect, as they're already fully evaluated by that point.
 
 
 
-Do {#do}
---------
+## Do {#do}
 
 The Do parse transformer permits Haskell-style *do-notation* in
 Erlang, which makes using monads, and monad transformers possible and
@@ -311,8 +306,7 @@ value?
 
 
 
-License
--------
+## License
 
 (The MPL)
 
@@ -325,4 +319,3 @@ The Original Code is Erlando.
 
 The Initial Developer of the Original Code is VMware, Inc.
 Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
-
