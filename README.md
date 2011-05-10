@@ -365,7 +365,7 @@ not inspect the values passed to them, and always invoke the
 subsequent expression fun.
 
 What could we do if we did inspect the values passed to the sequencing
-combinators? One possibility results in the Maybe monad:
+combinators? One possibility results in the Maybe-monad:
 
     -module(maybe_m).
     -behaviour(monad).
@@ -402,6 +402,91 @@ We see here that within the do-block, there is no mention of `nothing`
 or `just`: they are abstracted away by the Maybe-monad. As a result,
 it is possible to change the monad in use, without having to rewrite
 any further code.
+
+One common place to use a monad like the Maybe-monad is where you'd
+otherwise have a lot of nested case statements in order to detect
+errors. For example:
+
+    write_file(Path, Data, Modes) ->
+        Modes1 = [binary, write | (Modes -- [binary, write])],
+        case make_binary(Data) of
+            Bin when is_binary(Bin) ->
+                case file:open(Path, Modes1) of
+                    {ok, Hdl} ->
+                        case file:write(Hdl, Bin) of
+                            ok ->
+                                case file:sync(Hdl) of
+                                    ok ->
+                                        file:close(Hdl);
+                                    {error, _} = E ->
+                                        file:close(Hdl),
+                                        E
+                                end;
+                            {error, _} = E ->
+                                file:close(Hdl),
+                                E
+                        end;
+                    {error, _} = E -> E
+                end;
+            {error, _} = E -> E
+        end.
+
+    make_binary(Bin) when is_binary(Bin) ->
+        Bin;
+    make_binary(List) ->
+        try
+            iolist_to_binary(List)
+        catch error:Reason ->
+                {error, Reason}
+        end.
+
+can be transformed into the much shorter
+
+    write_file(Path, Data, Modes) ->
+        Modes1 = [binary, write | (Modes -- [binary, write])],
+        do([error_m ||
+            Bin <- make_binary(Data),
+            {ok, Hdl} <- file:open(Path, Modes1),
+            {ok, Result} <- return(do([error_m ||
+                                       ok <- file:write(Hdl, Bin),
+                                       file:sync(Hdl)])),
+            file:close(Hdl),
+            Result]).
+
+Note that we have a nested do-block so that, as with the non-monadic
+code, we ensure that once the file is opened, we always call
+`file:close/1` even if an error occurs in a subsequent operation. This
+is achieved by wrapping the nested do-block with a `return/1` call:
+even if the inner do-block errors, the error is *lifted* to a
+non-error value in the outer do-block, and thus execution continues to
+the subsequent `file:close/1` call.
+
+Here we are using an Error-monad which is remarkably similar to the
+Maybe-monad, but matches the typical Erlang practise of indicating
+errors by an `{error, Reason}` tuple:
+
+    -module(error_m).
+    -behaviour(monad).
+    -export(['>>='/2, '>>'/2, return/1, fail/1]).
+    
+    '>>='({error, _Err} = Error, _Fun) -> Error;
+    '>>='(Result,                 Fun) -> Fun(Result).
+    
+    '>>'({error, _Err} = Error, _Fun) -> Error;
+    '>>'(_Result,                Fun) -> Fun().
+    
+    return(X) -> {ok,    X}.
+    fail(X)   -> {error, X}.
+
+
+#### Monad Transformers
+
+Monads can be nested: not just by having do-blocks inside do-blocks,
+but also by defining a monad as a transformation of another, inner
+monad. The State Transform is a very commonly used monad transformer,
+and is especially relevant for Erlang.
+
+
 
 
 ## License
