@@ -346,7 +346,7 @@ others are:
 
 * `fail/1`: This takes a string, describing the error encountered, and
   informs whichever monad currently in use that some sort of error has
-  occured.
+  occurred.
 
 Note that within *do-notation*, any function call to functions named
 `return` or `fail`, are automatically rewritten to invoke `return` or
@@ -488,8 +488,71 @@ errors by an `{error, Reason}` tuple:
 Monads can be nested: not just by having do-blocks inside do-blocks,
 but also by defining a monad as a transformation of another, inner
 monad. The State Transform is a very commonly used monad transformer,
-and is especially relevant for Erlang.
+and is especially relevant for Erlang. Because Erlang is a
+single-assignment language, it's very common to end up with a lot of
+code that incrementally numbers variables:
 
+    State1 = init(Dimensions),
+    State2 = plant_seeds(SeedCount, State1),
+    {DidFlood, State3} = pour_on_water(WaterVolume, State2),
+    State4 = apply_sunlight(Time, State3),
+    {DidFlood2, State5} = pour_on_water(WaterVolume, State4),
+    {Crop, State6} = harvest(State5),
+    ...
+
+This is hideously annoying, because not only does it look awful, but
+you also have to renumber variables across many lines whenever you add
+or remove lines. Wouldn't it be nice if we could abstract out the
+`State`? - we could have a monad encapsulate the state and provide it
+and collect it to and from the functions we wish to run.
+
+The State-transform can be applied to any monad. If we apply it to the
+Identity-monad then we get what we're looking for. The key extra
+functionality that the State transformer provides us with is the
+ability to `get` and `set` (or just plain `modify`) state from within
+the inner monad. If we use both the Do and Cut parse transformers, we
+can write:
+
+    StateT = state_t:new(identity_m),
+    SM = StateT:modify(_),
+    SMR = StateT:modify_and_return(_),
+    StateT:exec(
+      do([StateT ||
+
+          StateT:put(init(Dimensions)),
+          SM(plant_seeds(SeedCount, _)),
+          DidFlood <- SMR(pour_on_water(WaterVolume, _)),
+          SM(apply_sunlight(Time, _)),
+          DidFlood2 <- SMR(pour_on_water(WaterVolume, _)),
+          Crop <- SMR(harvest(_)),
+          ...
+
+          ]), undefined).
+
+We start by creating a State-transform over the Identity-monad. We set
+up a couple of shorthands for running functions that either just
+modify the state, or modify the state and return a result. Whilst
+there's a bit of bookkeeping to do, we achieve our goal: there are no
+state variables now to renumber whenever we make a change: we use cut
+to leave holes in the functions where State should be fed in, and we
+obey the protocol that if functions return both a result and state, it
+should be in the form of a `{Result, State}` tuple. The
+State-transform does the rest.
+
+
+### Beyond Monads
+
+There are also some standard monad functions such as `join/2` and
+`sequence/2` available in the `monad` module. We also have implemented
+`monad_plus` which works for monads where there's an obvious sense of
+*zero* (currently Maybe-monad, List-monad, and Omega-monad), and the
+associated functions `guard`, `msum` and `mfilter` are available in
+the `monad_plus` module.
+
+In many cases, a fairly mechanical translation from Haskell to Erlang
+is possible, so converting other monads or combinators should be
+fairly straightforward. However, the lack of type classes in Erlang is
+severely limiting.
 
 
 
