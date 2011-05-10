@@ -351,7 +351,7 @@ Note that within *do-notation*, any function call to functions named
 `return` or `fail`, are automatically rewritten to invoke `return` or
 `fail` within the current monad.
 
-The simplest monad possible is the Identity monad:
+The simplest monad possible is the Identity-monad:
 
     -module(identity_m).
     -behaviour(monad).
@@ -465,7 +465,7 @@ non-error value in the outer do-block, and thus execution continues to
 the subsequent `file:close/1` call.
 
 Here we are using an Error-monad which is remarkably similar to the
-Maybe-monad, but matches the typical Erlang practise of indicating
+Maybe-monad, but matches the typical Erlang practice of indicating
 errors by an `{error, Reason}` tuple:
 
     -module(error_m).
