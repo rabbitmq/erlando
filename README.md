@@ -235,7 +235,7 @@ noise.
 
 #### The Mechanics of a Comma
 
-What follows is a very brief and mechanical introduction to monads. It
+What follows is a brief and mechanical introduction to monads. It
 differs from a lot of the Haskell monad tutorials, because they tend
 to view monads as a means of achieving sequencing of operations in
 Haskell, which is a lazy language. Erlang is not a lazy language, but
