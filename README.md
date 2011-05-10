@@ -10,16 +10,16 @@ Erlando is a set of syntax extensions for Erlang. Currently it
 consists of two syntax extensions, both of which take the form of
 [parse transformers](http://www.erlang.org/doc/man/erl_id_trans.html).
 
-* **Cut**: This adds support for cuts to Erlang. These are inspired by
-  the
+* [**Cut**](#cut): This adds support for cuts to Erlang. These are
+  inspired by the
   [Scheme form of cuts](http://srfi.schemers.org/srfi-26/srfi-26.html). Cuts
   can be thought of as a light-weight form of abstraction, with
   similarities to partial application (or currying).
     
-* **Do**: This adds support for do-syntax and monads to Erlang. These
-  are heavily inspired by [Haskell](http://haskell.org), and the
-  monads and libraries are near-mechanical translations from the
-  Haskell GHC libraries.
+* [**Do**](#do): This adds support for do-syntax and monads to
+  Erlang. These are heavily inspired by [Haskell](http://haskell.org),
+  and the monads and libraries are near-mechanical translations from
+  the Haskell GHC libraries.
 
 
 
@@ -42,8 +42,8 @@ Then, when compiling `test.erl`, you must ensure `erlc` can locate
 
 
 
-Cut
----
+Cut {#cut}
+----------
 
 ### Motivation
 
@@ -218,6 +218,11 @@ useful by interacting with the evaluation scope. For example:
 This is not allowed, because the arguments to `F` would have to be
 evaluated before the invocation of its body, which would then have no
 effect, as they're already fully evaluated by that point.
+
+
+
+Do {#do}
+--------
 
 
 
