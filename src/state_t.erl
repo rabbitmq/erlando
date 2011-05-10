@@ -19,7 +19,7 @@
 
 -behaviour(monad).
 -export(['>>='/2, '>>'/2, return/1, fail/1]).
--export([get/0, put/1, eval/2, exec/2, run/2, modify/1]).
+-export([get/0, put/1, eval/2, exec/2, run/2, modify/1, modify_and_return/1]).
 
 '>>='(X, Fun) -> fun (S) -> do([InnerMonad || {A, S1} <- X(S),
                                               (Fun(A))(S1)]) end.
@@ -42,5 +42,6 @@ exec(Monad, S) -> do([InnerMonad || {_A, S1} <- Monad(S),
 
 run(Monad, S)  -> do([InnerMonad || Monad(S)]).
 
-modify(Fun)    -> do([THIS || S <- THIS:get(),
-                              THIS:put(Fun(S))]).
+modify(Fun) -> fun (S) -> InnerMonad:return({ok, Fun(S)}) end.
+
+modify_and_return(Fun) -> fun (S) -> InnerMonad:return(Fun(S)) end.
