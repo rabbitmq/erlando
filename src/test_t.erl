@@ -21,7 +21,6 @@
 -export(['>>='/2, return/1, fail/1, passed/0, run/1, run/2]).
 
 -ifdef(use_specs).
-%% test_m _ is a test outcome
 -type(monad(_A) :: fun (() -> 'passed' | {'failed', any()})).
 -include("monad_specs.hrl").
 -endif.
