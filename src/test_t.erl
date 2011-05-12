@@ -66,5 +66,5 @@ run(Monad) ->
                           return(passed)])
     catch
         Class:Reason ->
-            (THIS:fail({Class, Reason}))()
+            (THIS:fail({Class, Reason, erlang:get_stacktrace()}))()
     end.
