@@ -27,7 +27,7 @@
 -endif.
 
 '>>='(X, Fun) -> fun () -> do([InnerMonad || passed <- X(),
-                                             (Fun(undefined))()]) end.
+                                             (Fun(passed))()]) end.
 
 return(_A) -> fun () -> InnerMonad:return(passed) end.
 fail(X)    -> fun () -> InnerMonad:return({failed, X}) end.
