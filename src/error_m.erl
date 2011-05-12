@@ -17,7 +17,7 @@
 -module(error_m).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 
 -ifdef(use_specs).
 -type(monad(A) :: {'ok', A} | {'error', string()}).
@@ -26,9 +26,6 @@
 
 '>>='({error, _Err} = Error, _Fun) -> Error;
 '>>='(Result,                 Fun) -> Fun(Result).
-
-'>>'({error, _Err} = Error, _Fun) -> Error;
-'>>'(_Result,                Fun) -> Fun().
 
 return(X) -> {ok,    X}.
 fail(X)   -> {error, X}.

@@ -257,7 +257,10 @@ expr({call, _Line, {atom, _Line1, do},
      MonadStack) when AtomOrVar =:= atom orelse AtomOrVar =:= var ->
     %% 'do' calls of a particular form:
     %%  do([ MonadMod || Qualifiers ])
-    do_syntax(Qs, [Monad|MonadStack]);
+    %%io:format("~nDO [====~n[~p || ~p]~n", [Monad, Qs]),
+    Expr = do_syntax(Qs, [Monad|MonadStack]),
+    %%io:format("    ===>~n~p~nEND ====]~n", [Expr]),
+    Expr;
 %%  'return' and 'fail' syntax detection and transformation:
 expr({call, Line, {atom, Line1, ReturnOrFail}, As0},
      [Monad|_Monads] = MonadStack) when ReturnOrFail =:= return orelse
@@ -370,22 +373,44 @@ do_syntax([], [{_AtomOrVar, MLine, _MonadModule}|_MonadStack]) ->
     erlang:error({"A 'do' construct cannot be empty", MLine});
 do_syntax([{generate, Line, _Pattern, _Expr}], _MonadStack) ->
     erlang:error({"The last statement in a 'do' construct must be an expression", Line});
+do_syntax([{generate, Line, Pattern={var,_Line,_Var}, Expr}|Exprs],
+          [Monad|_Monads] = MonadStack) ->
+    %% "Pattern <- Expr, Tail"
+    %% is transformed to
+    %% "Monad:'>>='(Expr, fun (Pattern) -> Tail')"
+    %% without a fail to match clause
+    {call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
+      [expr(Expr, MonadStack),
+       {'fun', Line,
+        {clauses,
+         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}]
+    }}]};
 do_syntax([{generate, Line, Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
     %% "Pattern <- Expr, Tail"
     %% is transformed to
     %% "Monad:'>>='(Expr, fun (Pattern) -> Tail')"
+    %% with a fail clause if the function does not match
     {call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
       [expr(Expr, MonadStack),
-       {'fun', Line, {clauses, [{clause, Line, [Pattern], [],
-                                 [do_syntax(Exprs, MonadStack)]}]}}]};
+       {'fun', Line,
+        {clauses,
+         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}
+         ,{clause, Line, [{var, Line, '_'}], [],
+           [{call, Line, {remote, Line, Monad, {atom, Line, 'fail'}},
+           [{atom, Line, 'monad_badmatch'}]
+         }]}]
+    }}]};
 do_syntax([Expr], MonadStack) ->
     expr(Expr, MonadStack); %% Don't do '>>' chaining on the last elem
 do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
-    %% "Expr, Tail" is transformed to "Monad:'>>'(Expr, fun () -> Tail')"
+    %% "Expr, Tail" is transformed to "Monad:'>>='(Expr, fun (_) -> Tail')"
     %% Line is always the 2nd element of Expr
     Line = element(2, Expr),
-    {call, Line, {remote, Line, Monad, {atom, Line, '>>'}},
+    {call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
       [expr(Expr, MonadStack),
-       {'fun', Line, {clauses, [{clause, Line, [], [],
-                                 [do_syntax(Exprs, MonadStack)]}]}}]}.
+        {'fun', Line,
+          {clauses,
+            [{clause, Line,
+              [{var, Line, '_'}], [], [do_syntax(Exprs, MonadStack)]
+    }]}}]}.

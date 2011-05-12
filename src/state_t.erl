@@ -18,14 +18,11 @@
 -compile({parse_transform, do}).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 -export([get/0, put/1, eval/2, exec/2, run/2, modify/1, modify_and_return/1]).
 
 '>>='(X, Fun) -> fun (S) -> do([InnerMonad || {A, S1} <- X(S),
                                               (Fun(A))(S1)]) end.
-
-'>>'(X, Fun)  -> fun (S) -> do([InnerMonad || {_A, S1} <- X(S),
-                                              (Fun())(S1)]) end.
 
 return(A)     -> fun (S) -> InnerMonad:return({A, S}) end.
 fail(Str)     -> fun (_) -> InnerMonad:fail(Str) end.

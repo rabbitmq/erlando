@@ -17,4 +17,3 @@
 -spec(return/1 :: (A) -> monad(A)).
 -spec(fail/1 :: (string()) -> monad(_A)).
 -spec('>>='/2 :: (monad(A), fun ((A) -> monad(B))) -> monad(B)).
--spec('>>'/2 :: (monad(_A), fun (() -> monad(B))) -> monad(B)).
