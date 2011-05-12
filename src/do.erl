@@ -373,9 +373,9 @@ do_syntax([], [{_AtomOrVar, MLine, _MonadModule}|_MonadStack]) ->
     erlang:error({"A 'do' construct cannot be empty", MLine});
 do_syntax([{generate, Line, _Pattern, _Expr}], _MonadStack) ->
     erlang:error({"The last statement in a 'do' construct must be an expression", Line});
-do_syntax([{generate, Line, Pattern={var,_Line,_Var}, Expr}|Exprs],
+do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
-    %% "Pattern <- Expr, Tail"
+    %% "Pattern <- Expr, Tail" where Pattern is a simple variable
     %% is transformed to
     %% "Monad:'>>='(Expr, fun (Pattern) -> Tail')"
     %% without a fail to match clause
@@ -383,11 +383,10 @@ do_syntax([{generate, Line, Pattern={var,_Line,_Var}, Expr}|Exprs],
       [expr(Expr, MonadStack),
        {'fun', Line,
         {clauses,
-         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}]
-    }}]};
+         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}]}}]};
 do_syntax([{generate, Line, Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
-    %% "Pattern <- Expr, Tail"
+    %% "Pattern <- Expr, Tail" where Pattern is not a simple variable
     %% is transformed to
     %% "Monad:'>>='(Expr, fun (Pattern) -> Tail')"
     %% with a fail clause if the function does not match
@@ -395,12 +394,10 @@ do_syntax([{generate, Line, Pattern, Expr}|Exprs],
       [expr(Expr, MonadStack),
        {'fun', Line,
         {clauses,
-         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}
-         ,{clause, Line, [{var, Line, '_'}], [],
+         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]},
+          {clause, Line, [{var, Line, '_'}], [],
            [{call, Line, {remote, Line, Monad, {atom, Line, 'fail'}},
-           [{atom, Line, 'monad_badmatch'}]
-         }]}]
-    }}]};
+           [{atom, Line, 'monad_badmatch'}]}]}]}}]};
 do_syntax([Expr], MonadStack) ->
     expr(Expr, MonadStack); %% Don't do '>>' chaining on the last elem
 do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
@@ -412,5 +409,4 @@ do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
         {'fun', Line,
           {clauses,
             [{clause, Line,
-              [{var, Line, '_'}], [], [do_syntax(Exprs, MonadStack)]
-    }]}}]}.
+              [{var, Line, '_'}], [], [do_syntax(Exprs, MonadStack)]}]}}]}.
