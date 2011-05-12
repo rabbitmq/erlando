@@ -18,15 +18,19 @@
 -compile({parse_transform, do}).
 
 -behaviour(monad).
--export(['>>='/2, return/1, fail/1, passed/0, run/1, run/2]).
+-export(['>>='/2, return/1, fail/1, run/1, test/2]).
 
 -ifdef(use_specs).
 -type(monad(_A) :: fun (() -> 'passed' | {'failed', any()})).
 -include("monad_specs.hrl").
 -endif.
 
-'>>='(X, Fun) -> fun () -> do([InnerMonad || passed <- X(),
-                                             (Fun(passed))()]) end.
+'>>='(X, Fun) -> fun () ->
+                         case X() of
+                             passed -> (Fun(passed))();
+                             Failed -> Failed
+                         end
+                 end.
 
 return(_A) -> fun () -> InnerMonad:return(passed) end.
 
@@ -41,10 +45,10 @@ return(_A) -> fun () -> InnerMonad:return(passed) end.
 %% is encapsulated.
 fail(X)    -> fun () -> InnerMonad:return({failed, X}) end.
 
-passed()   -> return(passed).
+run(Fun) -> Fun().
 
-run(Monad, Options) ->
-    Result = run(Monad),
+test(Funs, Options) ->
+    Result = run(monad:sequence(THIS, test(Funs))),
     case proplists:get_bool(report, Options) of
         true ->
             Name = proplists:get_value(name, Options, anonymous),
@@ -60,11 +64,38 @@ run(Monad, Options) ->
     end,
     Result.
 
-run(Monad) ->
+
+test([]) ->
+    [];
+
+test([{Module, {Label, FunName}}|Funs])
+  when is_atom(Module) andalso is_atom(FunName) ->
+    [do([THIS || hoist(Label, fun () -> Module:FunName() end)]) | test(Funs)];
+
+test([{Module, FunName}|Funs])
+  when is_atom(Module) andalso is_atom(FunName)
+       andalso is_function({Module, FunName}, 0) ->
+    [do([THIS || hoist(FunName, fun () -> Module:FunName() end)]) | test(Funs)];
+
+test([{_Module, []}|Funs]) ->
+    test(Funs);
+
+test([{Module, [FunName|FunNames]}|Funs])
+  when is_atom(Module) andalso is_atom(FunName) ->
+    test([{Module, FunName}, {Module, FunNames} | Funs]);
+
+test([{Label, Fun}|Funs]) when is_function(Fun, 0) ->
+    [do([THIS || hoist(Label, Fun)]) | test(Funs)];
+
+test([Fun|Funs]) when is_function(Fun, 0) ->
+    [do([THIS || hoist(anonymous_function, Fun)]) | test(Funs)].
+
+
+hoist(Label, PlainFun) ->
     try
-        do([InnerMonad || passed <- Monad(),
-                          return(passed)])
+        PlainFun(),
+        THIS:return(passed)
     catch
         Class:Reason ->
-            (THIS:fail({Class, Reason, erlang:get_stacktrace()}))()
+            THIS:fail({Label, Class, Reason, erlang:get_stacktrace()})
     end.

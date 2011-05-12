@@ -19,30 +19,26 @@
 
 -compile(export_all).
 
-test_sequence(Passed) ->
+test_sequence() ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
-    {just, List} = monad:sequence(maybe_m, ListM),
-    Passed().
+    {just, List} = monad:sequence(maybe_m, ListM).
 
-test_join(Passed) ->
-    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
-    Passed().
+test_join() ->
+    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))).
 
-test_maybe(Passed) ->
+test_maybe() ->
     nothing = maybe(atom),
-    {just, 9} = maybe(3),
-    Passed().
+    {just, 9} = maybe(3).
 
 maybe(Arg) ->
     do([maybe_m
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
 
-test_fib(Passed) ->
+test_fib() ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
-                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
-    Passed().
+                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]).
 
 %% Classic monadic implementation of fibonnaci
 fib_m(N) ->
@@ -59,7 +55,7 @@ fib_rec(N) when N >= 0 -> fib_rec(N, 0, 1).
 fib_rec(0, _X, Y) -> Y;
 fib_rec(N,  X, Y) -> fib_rec(N-1, Y, X+Y).
 
-test_list(Passed) ->
+test_list() ->
     %% Demonstrate equivalence of list comprehensions and list monad
     A = [{X,Y} || X <- "abcd",
                   Y <- [1,2]],
@@ -76,10 +72,9 @@ test_list(Passed) ->
                       Y <- lists:seq(X,Z),
                       monad_plus:guard(
                         list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
-                      return({X,Y,Z})]),
-    Passed().
+                      return({X,Y,Z})]).
 
-test_omega(Passed) ->
+test_omega() ->
     A = [{X,Y,Z} || X <- "abcd",
                     Y <- lists:seq(1,5),
                     Z <- lists:seq(11,15)],
@@ -88,17 +83,14 @@ test_omega(Passed) ->
                        Z <- lists:seq(11,15),
                        return({X,Y,Z})]),
     true = A =/= B,
-    true = A =:= lists:usort(B),
-    Passed().
+    true = A =:= lists:usort(B).
 
 test() ->
     TestT = test_t:new(identity_m),
-    Passed = fun () -> TestT:passed() end,
-    TestT:run(do([TestT ||
-                     test_sequence(Passed),
-                     test_join(Passed),
-                     test_maybe(Passed),
-                     test_fib(Passed),
-                     test_list(Passed),
-                     test_omega(Passed)
-                 ]), [report, {name, ?MODULE}]).
+    TestT:test([{?MODULE, [test_sequence,
+                           test_join,
+                           test_maybe,
+                           test_fib,
+                           test_list,
+                           test_omega]}],
+               [report, {name, ?MODULE}]).
