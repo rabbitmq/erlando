@@ -16,34 +16,33 @@
 
 -module(test_do).
 -compile({parse_transform, do}).
--compile({parse_transform, cut}).
 
 -compile(export_all).
 
-test_sequence(_) ->
+test_sequence(TestM) ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
     {just, List} = monad:sequence(maybe_m, ListM),
-    passed.
+    TestM:passed().
 
-test_join(_) ->
+test_join(TestM) ->
     {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
-    passed.
+    TestM:passed().
 
-test_maybe(_) ->
+test_maybe(TestM) ->
     nothing = maybe(atom),
     {just, 9} = maybe(3),
-    passed.
+    TestM:passed().
 
 maybe(Arg) ->
     do([maybe_m
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
 
-test_fib(_) ->
+test_fib(TestM) ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
                      [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
-    passed.
+    TestM:passed().
 
 %% Classic monadic implementation of fibonnaci
 fib_m(N) ->
@@ -60,7 +59,7 @@ fib_rec(N) when N >= 0 -> fib_rec(N, 0, 1).
 fib_rec(0, _X, Y) -> Y;
 fib_rec(N,  X, Y) -> fib_rec(N-1, Y, X+Y).
 
-test_list(_) ->
+test_list(TestM) ->
     %% Demonstrate equivalence of list comprehensions and list monad
     A = [{X,Y} || X <- "abcd",
                   Y <- [1,2]],
@@ -78,9 +77,9 @@ test_list(_) ->
                       monad_plus:guard(
                         list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
                       return({X,Y,Z})]),
-    passed.
+    TestM:passed().
 
-test_omega(_) ->
+test_omega(TestM) ->
     A = [{X,Y,Z} || X <- "abcd",
                     Y <- lists:seq(1,5),
                     Z <- lists:seq(11,15)],
@@ -90,18 +89,15 @@ test_omega(_) ->
                        return({X,Y,Z})]),
     true = A =/= B,
     true = A =:= lists:usort(B),
-    passed.
+    TestM:passed().
 
 test() ->
-    io:format(test_m:report("erlando do",
-        do([test_m ||
-             run("sequence", test_sequence(_))
-            ,run("join", test_join(_))
-            ,run("maybe", test_maybe(_))
-            ,run("fib", test_fib(_))
-            ,run("list", test_list(_))
-            ,run("omega", test_omega(_))
-           ]))),
-    ok.
-    
-run(String, Fun) -> (test_m:mktest(Fun))(String).
+    TestM = test_m:new(identity_m),
+    TestM:run(do([TestM ||
+                     test_sequence(TestM),
+                     test_join(TestM),
+                     test_maybe(TestM),
+                     test_fib(TestM),
+                     test_list(TestM),
+                     test_omega(TestM)
+                 ]), [report, {name, ?MODULE}]).
