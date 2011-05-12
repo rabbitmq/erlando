@@ -14,36 +14,48 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(test_m).
+-module(test_m, [InnerMonad]).
+-compile({parse_transform, do}).
 
 -behaviour(monad).
--export(['>>='/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1, passed/0, run/1, run/2]).
 
 -ifdef(use_specs).
 %% test_m _ is a test outcome
--type(monad(_A) :: 'passed' | {'failed', string(), any()}).
+-type(monad(_A) :: fun (() -> 'passed' | {'failed', any()})).
 -include("monad_specs.hrl").
 -endif.
 
--export([mktest/1, report/2]).
+'>>='(X, Fun) -> fun () -> do([InnerMonad || passed <- X(),
+                                             (Fun(undefined))()]) end.
 
-'>>='(passed, MFun) -> MFun(nil);
-'>>='(Failure = {failed, _S, _X}, _Fun) -> Failure.
+return(_A) -> fun () -> InnerMonad:return(passed) end.
+fail(X)    -> fun () -> InnerMonad:return({failed, X}) end.
 
-return(_A) -> passed.
-fail(X)   -> {failed, "test_m", X}.
+passed()   -> return(passed).
 
-%% Convert a function into a safe test outcome producing function
-%% mktest :: (string() -> b) -> (string() -> test_m b)
-mktest(Fun) when is_function(Fun, 1) ->
-    fun (String) ->
-        try Fun(String), passed
-        catch Class:Reason ->
-            {failed, String, {Class, Reason}}
-        end
+run(Monad, Options) ->
+    Result = run(Monad),
+    case proplists:get_bool(report, Options) of
+        true ->
+            Name = proplists:get_value(name, Options, anonymous),
+            case Result of
+                passed ->
+                    io:format("Test suite '~p' passed.~n", [Name]);
+                {failed, Reason} ->
+                    io:format("Test suite '~p' failed with ~p.~n",
+                              [Name, Reason])
+            end;
+        false ->
+            ok
+    end,
+    Result.
+
+run(Monad) ->
+    try
+        do([InnerMonad || passed <- Monad(),
+                          return(passed)])
+    catch
+        Class:Reason ->
+            (THIS:fail({Class, Reason}))()
     end.
-
-report(String, passed) ->
-    io_lib:format("Test suite '~s' passed.~n", [String]);
-report(String, {failed, Test, Failure}) ->
-    io_lib:format("Test suite '~s' failed in test '~s'.~n ===> ~p~n", [String, Test, Failure]).
