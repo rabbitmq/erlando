@@ -90,17 +90,6 @@ test_omega() ->
     true = A =/= B,
     true = A =:= lists:usort(B).
 
-
-test_loop(Ns) ->
-    ErrorT = error_t:new(identity_m),
-    ErrorT:run(test_loop(ErrorT, Ns)).
-
-test_loop(ErrorT, []) ->
-    do([ErrorT || return(ok)]);
-test_loop(ErrorT, [N|M]) ->
-    do([ErrorT || return(N),
-                  test_loop(ErrorT, M)]).
-
 test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
