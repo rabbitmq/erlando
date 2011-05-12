@@ -21,6 +21,11 @@
 -export(['>>='/2, return/1, fail/1]).
 -export([get/0, put/1, eval/2, exec/2, run/2, modify/1, modify_and_return/1]).
 
+-ifdef(use_specs).
+-type(monad(A) :: fun ((S) -> {A, S})).
+-include("monad_specs.hrl").
+-endif.
+
 '>>='(X, Fun) -> fun (S) -> do([InnerMonad || {A, S1} <- X(S),
                                               (Fun(A))(S1)]) end.
 
