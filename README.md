@@ -324,22 +324,8 @@ The answer to the first question is *almost anything*; and to the
 later question, is *any module name that implements the monad
 behaviour*.
 
-Above, we covered one of the four monadic operators, `>>=/2`. The
+Above, we covered one of the three monadic operators, `>>=/2`. The
 others are:
-
-* `>>/2`: This is exactly the same as `>>=/2`, except there is no
-  variable to bind. E.g.
-
-        do([Monad ||
-            foo(),
-            A <- bar(),
-            ok]).
-
-    is transformed into
-
-        Monad:'>>'(foo(),
-                   fun () -> Monad:'>>='(bar(),
-                                         fun (A) -> ok end)).
 
 * `return/1`: This *lifts* a value into the monad. We'll see examples
   of this shortly.
@@ -352,34 +338,48 @@ Note that within *do-notation*, any function call to functions named
 `return` or `fail`, are automatically rewritten to invoke `return` or
 `fail` within the current monad.
 
+> Some people familiar with Haskell's monads may be expecting to see a
+fourth operator, `>>/2`. Interestingly, it turns out that you can't
+implement `>>/2` in a strict language unless all your monad types are
+built on top a function. This is because in a strict language,
+arguments to functions are evaluated before the function is
+invoked. For `>>=/2`, the 2nd argument is only reduced to a function
+prior to invocation of `>>=/2`. But the 2nd argument to `>>/2` is not
+a function, and so in strict languages, will be fully reduced prior to
+`>>/2` being invoked. This is problematic because the `>>/2` operator
+is meant to be in control of whether or not subsequent expressions are
+evaluated. The only solution here would be to make the basic monad
+type a function, which would then mean that the 2nd argument to
+`>>=/2` would become a function to a function to a result! However, it
+is required that `'>>'(A, B)` behaves identically to `'>>='(A, fun (_)
+-> B end)`, and so that is what we do: whenever we come
+`do([Monad || A, B ])`, we rewrite it to `'>>='(A, fun (_) -> B end)`
+rather than `'>>'(A, B)`. The effect of this is that the `>>/2`
+operator does not exist.
+
 The simplest monad possible is the Identity-monad:
 
     -module(identity_m).
     -behaviour(monad).
-    -export(['>>='/2, '>>'/2, return/1, fail/1]).
+    -export(['>>='/2, return/1, fail/1]).
 
     '>>='(X, Fun) -> Fun(X).
-    '>>'(_X, Fun) -> Fun().
     return(X)     -> X.
     fail(X)       -> throw({error, X}).
 
 This makes our programmatic comma behave just like Erlang's comma
-normally does. The two sequencing combinators (`>>/2` and `>>=/2`) do
-not inspect the values passed to them, and always invoke the
-subsequent expression fun.
+normally does. The **bind** operator (`>>=/2`) does not inspect the
+values passed to it, and always invokes the subsequent expression fun.
 
 What could we do if we did inspect the values passed to the sequencing
 combinators? One possibility results in the Maybe-monad:
 
     -module(maybe_m).
     -behaviour(monad).
-    -export(['>>='/2, '>>'/2, return/1, fail/1]).
+    -export(['>>='/2, return/1, fail/1]).
     
     '>>='({just, X}, Fun) -> Fun(X);
     '>>='(nothing,  _Fun) -> nothing.
-    
-    '>>'({just, _X}, Fun) -> Fun();
-    '>>'(nothing,   _Fun) -> nothing.
     
     return(X) -> {just, X}.
     fail(_X)  -> nothing.
@@ -471,13 +471,10 @@ errors by an `{error, Reason}` tuple:
 
     -module(error_m).
     -behaviour(monad).
-    -export(['>>='/2, '>>'/2, return/1, fail/1]).
+    -export(['>>='/2, return/1, fail/1]).
     
     '>>='({error, _Err} = Error, _Fun) -> Error;
     '>>='(Result,                 Fun) -> Fun(Result).
-    
-    '>>'({error, _Err} = Error, _Fun) -> Error;
-    '>>'(_Result,                Fun) -> Fun().
     
     return(X) -> {ok,    X}.
     fail(X)   -> {error, X}.
