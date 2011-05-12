@@ -17,24 +17,33 @@
 -module(test_m).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 
 -ifdef(use_specs).
--type(monad(_A) :: 'passed' | {'failed', any()}).
+%% test_m _ is a test outcome
+-type(monad(_A) :: 'passed' | {'failed', string(), any()}).
 -include("monad_specs.hrl").
 -endif.
 
-'>>='(passed, Fun) -> attempt(fun () -> Fun(passed) end);
-'>>='(X,     _Fun) -> {failed, X}.
+-export([mktest/1, report/2]).
 
-'>>'(passed, Fun) -> attempt(Fun);
-'>>'(X,     _Fun) -> {failed, X}.
+'>>='(passed, MFun) -> MFun(nil);
+'>>='(Failure = {failed, _S, _X}, _Fun) -> Failure.
 
-return(_X) -> passed.
-fail(X)    -> {failed, X}.
+return(_A) -> passed.
+fail(X)   -> {failed, "test_m", X}.
 
-attempt(Fun) ->
-    try Fun()
-    catch Class:Reason ->
-            fail({Class, Reason})
+%% Convert a function into a safe test outcome producing function
+%% mktest :: (string() -> b) -> (string() -> test_m b)
+mktest(Fun) when is_function(Fun, 1) ->
+    fun (String) ->
+        try Fun(String), passed
+        catch Class:Reason ->
+            {failed, String, {Class, Reason}}
+        end
     end.
+
+report(String, passed) ->
+    io_lib:format("Test suite '~s' passed.~n", [String]);
+report(String, {failed, Test, Failure}) ->
+    io_lib:format("Test suite '~s' failed in test '~s'.~n ===> ~p~n", [String, Test, Failure]).

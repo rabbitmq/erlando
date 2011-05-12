@@ -29,7 +29,6 @@
 
 behaviour_info(callbacks) ->
     [{'>>=',  2},
-     {'>>',   2},
      {return, 1},
      {fail,   1}];
 behaviour_info(_Other) ->

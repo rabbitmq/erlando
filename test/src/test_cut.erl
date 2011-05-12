@@ -28,7 +28,7 @@
              f2 = wibble,
              f3 = juice }).
 
-test_cut() ->
+test_cut(_) ->
     F0 = foo(a, b, _, 5+6, _),
     F1 = F0(_, e),
     ok = F1(c),
@@ -43,7 +43,7 @@ test_cut() ->
 
 foo(a, b, c, 11, e) -> ok.
 
-test_cut_nested() ->
+test_cut_nested(_) ->
     F = f1(1, f2(1 + _), _),
     %% should be:
     %% F = \X -> f1(1, f2(\Y -> 1 + Y), X)
@@ -53,22 +53,22 @@ test_cut_nested() ->
 f1(N, M, L) when N + M =:= L -> ok.
 f2(Nf) -> Nf(1).
 
-test_cut_op() ->
+test_cut_op(_) ->
     F = 1 + _,
     3 = F(2),
     passed.
 
-test_cut_unary_op() ->
+test_cut_unary_op(_) ->
     F = -_,
     0 = 1 + F(1),
     passed.
 
-test_cut_tuple() ->
+test_cut_tuple(_) ->
     {foo, _} = {foo, F} = {foo, {bar, _}},
     {bar, qux} = F(qux),
     passed.
 
-test_cut_record() ->
+test_cut_record(_) ->
     true = #r{} =/= #r{f3 = _},
     orange = ((#r{f3 = _})(orange))#r.f3,
     {r, foo, bar, baz} = (#r{f1 = _, f3 = _, f2 = _})(foo, baz, bar),
@@ -83,14 +83,14 @@ test_cut_record() ->
     hamster = Getter(Setter2(R, hamster)),
     passed.
 
-test_cut_record_nested() ->
+test_cut_record_nested(_) ->
     F = #r{f1 = #r{f1 = _, f3 = _}, f2 = _},
     R = F(apple),
     F1 = R#r.f1,
     #r{f1 = orange, f3 = banana} = F1(orange, banana),
     passed.
 
-test_cut_binary() ->
+test_cut_binary(_) ->
     <<"AbA", _/binary>> = (<<65, _, 65>>)($b),
     F = <<_:_>>,
     G = F(15, _),
@@ -98,7 +98,7 @@ test_cut_binary() ->
     <<1:1/unsigned, 1:1/unsigned, 1:1/unsigned, 1:1/unsigned>> = G(4),
     passed.
 
-test_cut_list() ->
+test_cut_list(_) ->
     F = [_|_],
     [a,b] = F(a,[b]),
     G = [_, _ | [33]],
@@ -118,7 +118,7 @@ test_cut_list() ->
     [b] = I1(b),
     passed.
 
-test_cut_case() ->
+test_cut_case(_) ->
     F = case _ of
             N when is_integer(N) andalso 0 =:= (N rem 2) ->
                 even;
@@ -132,7 +132,7 @@ test_cut_case() ->
     not_a_number = F(my_atom),
     passed.
 
-test_cut_comprehensions() ->
+test_cut_comprehensions(_) ->
     F = << <<(1 + (X*2))>> || _ <- _, X <- _ >>, %% Note, this'll only be a /2 !
     <<"AAA">> = F([a,b,c], [32]),
     F1 = [ {X, Y, Z} || X <- _, Y <- _, Z <- _,
@@ -142,14 +142,20 @@ test_cut_comprehensions() ->
     passed.
 
 test() ->
-    passed = do([test_m || test_cut(),
-                           test_cut_nested(),
-                           test_cut_op(),
-                           test_cut_unary_op(),
-                           test_cut_tuple(),
-                           test_cut_record(),
-                           test_cut_record_nested(),
-                           test_cut_binary(),
-                           test_cut_list(),
-                           test_cut_case(),
-                           test_cut_comprehensions()]).
+    io:format(test_m:report("erlando cut",
+        do([test_m ||
+             run("basic", test_cut(_))
+            ,run("nested", test_cut_nested(_))
+            ,run("op", test_cut_op(_))
+            ,run("unary_op", test_cut_unary_op(_))
+            ,run("tuple", test_cut_tuple(_))
+            ,run("record", test_cut_record(_))
+            ,run("record_nested", test_cut_record_nested(_))
+            ,run("binary", test_cut_binary(_))
+            ,run("list", test_cut_list(_))
+            ,run("case", test_cut_case(_))
+            ,run("comprehensions", test_cut_comprehensions(_))
+           ]))),
+    ok.
+
+run(String, Fun) -> (test_m:mktest(Fun))(String).

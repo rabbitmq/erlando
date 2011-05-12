@@ -17,7 +17,7 @@
 -module(maybe_m).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 
 -behaviour(monad_plus).
 -export([mzero/0, mplus/2]).
@@ -30,9 +30,6 @@
 
 '>>='({just, X}, Fun) -> Fun(X);
 '>>='(nothing,  _Fun) -> nothing.
-
-'>>'({just, _X}, Fun) -> Fun();
-'>>'(nothing,   _Fun) -> nothing.
 
 return(X) -> {just, X}.
 fail(_X)  -> nothing.

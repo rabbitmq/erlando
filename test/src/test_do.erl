@@ -16,20 +16,21 @@
 
 -module(test_do).
 -compile({parse_transform, do}).
+-compile({parse_transform, cut}).
 
 -compile(export_all).
 
-test_sequence() ->
+test_sequence(_) ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
     {just, List} = monad:sequence(maybe_m, ListM),
     passed.
 
-test_join() ->
+test_join(_) ->
     {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
     passed.
 
-test_maybe() ->
+test_maybe(_) ->
     nothing = maybe(atom),
     {just, 9} = maybe(3),
     passed.
@@ -39,7 +40,7 @@ maybe(Arg) ->
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
 
-test_fib() ->
+test_fib(_) ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
                      [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
     passed.
@@ -59,7 +60,7 @@ fib_rec(N) when N >= 0 -> fib_rec(N, 0, 1).
 fib_rec(0, _X, Y) -> Y;
 fib_rec(N,  X, Y) -> fib_rec(N-1, Y, X+Y).
 
-test_list() ->
+test_list(_) ->
     %% Demonstrate equivalence of list comprehensions and list monad
     A = [{X,Y} || X <- "abcd",
                   Y <- [1,2]],
@@ -79,7 +80,7 @@ test_list() ->
                       return({X,Y,Z})]),
     passed.
 
-test_omega() ->
+test_omega(_) ->
     A = [{X,Y,Z} || X <- "abcd",
                     Y <- lists:seq(1,5),
                     Z <- lists:seq(11,15)],
@@ -92,9 +93,15 @@ test_omega() ->
     passed.
 
 test() ->
-    passed = do([test_m || test_sequence(),
-                           test_join(),
-                           test_maybe(),
-                           test_fib(),
-                           test_list(),
-                           test_omega()]).
+    io:format(test_m:report("erlando do",
+        do([test_m ||
+             run("sequence", test_sequence(_))
+            ,run("join", test_join(_))
+            ,run("maybe", test_maybe(_))
+            ,run("fib", test_fib(_))
+            ,run("list", test_list(_))
+            ,run("omega", test_omega(_))
+           ]))),
+    ok.
+    
+run(String, Fun) -> (test_m:mktest(Fun))(String).
