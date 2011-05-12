@@ -30,6 +30,16 @@
                                              (Fun(passed))()]) end.
 
 return(_A) -> fun () -> InnerMonad:return(passed) end.
+
+%% This is the equivalent of
+%%     fail msg = ErrorT $ return (Left (strMsg msg))
+%% from the instance (Monad m, Error e) => Monad (ErrorT e m)
+%%
+%% http://hackage.haskell.org/packages/archive/mtl/1.1.0.2/doc/html/src/Control-Monad-Error.html#ErrorT
+%%
+%% I.e. note that calling fail on the outer monad is not a failure of
+%% the inner monad: it is success of the inner monad, but the failure
+%% is encapsulated.
 fail(X)    -> fun () -> InnerMonad:return({failed, X}) end.
 
 passed()   -> return(passed).
