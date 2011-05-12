@@ -25,7 +25,12 @@ test_sequence() ->
     {just, List} = monad:sequence(maybe_m, ListM).
 
 test_join() ->
-    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))).
+    {just, 5} = monad:join(maybe_m,
+                           maybe_m:return(maybe_m:return(5))),
+    {just, 5} = monad:join(maybe_m,
+                           do([maybe_m || return(maybe_m:return(5))])),
+    {just, 5} = monad:join(maybe_m,
+                           do([maybe_m || return(do([maybe_m || return(5)]))])).
 
 test_maybe() ->
     nothing = maybe(atom),
@@ -85,12 +90,22 @@ test_omega() ->
     true = A =/= B,
     true = A =:= lists:usort(B).
 
+
+test_loop(Ns) ->
+    ErrorT = error_t:new(identity_m),
+    ErrorT:run(test_loop(ErrorT, Ns)).
+
+test_loop(ErrorT, []) ->
+    do([ErrorT || return(ok)]);
+test_loop(ErrorT, [N|M]) ->
+    do([ErrorT || return(N),
+                  test_loop(ErrorT, M)]).
+
 test() ->
-    TestT = test_t:new(identity_m),
-    TestT:test([{?MODULE, [test_sequence,
-                           test_join,
-                           test_maybe,
-                           test_fib,
-                           test_list,
-                           test_omega]}],
-               [report, {name, ?MODULE}]).
+    test:test([{?MODULE, [test_sequence,
+                          test_join,
+                          test_maybe,
+                          test_fib,
+                          test_list,
+                          test_omega]}],
+              [report, {name, ?MODULE}]).

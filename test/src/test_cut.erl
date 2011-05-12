@@ -127,16 +127,15 @@ test_cut_comprehensions() ->
         lists:usort(F1(lists:seq(1,10), lists:seq(1,10), lists:seq(1,10))).
 
 test() ->
-    TestT = test_t:new(identity_m),
-    TestT:test([{?MODULE, [test_cut,
-                           test_cut_nested,
-                           test_cut_op,
-                           test_cut_unary_op,
-                           test_cut_tuple,
-                           test_cut_record,
-                           test_cut_record_nested,
-                           test_cut_binary,
-                           test_cut_list,
-                           test_cut_case,
-                           test_cut_comprehensions]}],
-               [report, {name, ?MODULE}]).
+    test:test([{?MODULE, [test_cut,
+                          test_cut_nested,
+                          test_cut_op,
+                          test_cut_unary_op,
+                          test_cut_tuple,
+                          test_cut_record,
+                          test_cut_record_nested,
+                          test_cut_binary,
+                          test_cut_list,
+                          test_cut_case,
+                          test_cut_comprehensions]}],
+              [report, {name, ?MODULE}]).
