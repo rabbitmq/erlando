@@ -14,7 +14,7 @@
 %% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(test_m, [InnerMonad]).
+-module(test_t, [InnerMonad]).
 -compile({parse_transform, do}).
 
 -behaviour(monad).

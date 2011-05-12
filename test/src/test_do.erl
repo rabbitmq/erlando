@@ -92,9 +92,9 @@ test_omega(Passed) ->
     Passed().
 
 test() ->
-    TestM = test_m:new(identity_m),
-    Passed = fun () -> TestM:passed() end,
-    TestM:run(do([TestM ||
+    TestT = test_t:new(identity_m),
+    Passed = fun () -> TestT:passed() end,
+    TestT:run(do([TestT ||
                      test_sequence(Passed),
                      test_join(Passed),
                      test_maybe(Passed),

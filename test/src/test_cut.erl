@@ -142,9 +142,9 @@ test_cut_comprehensions(Passed) ->
     Passed().
 
 test() ->
-    TestM = test_m:new(identity_m),
-    Passed = fun () -> TestM:passed() end,
-    TestM:run(do([TestM ||
+    TestT = test_t:new(identity_m),
+    Passed = fun () -> TestT:passed() end,
+    TestT:run(do([TestT ||
                      test_cut(Passed),
                      test_cut_nested(Passed),
                      test_cut_op(Passed),
