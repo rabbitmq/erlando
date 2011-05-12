@@ -28,7 +28,7 @@
              f2 = wibble,
              f3 = juice }).
 
-test_cut(TestM) ->
+test_cut(Passed) ->
     F0 = foo(a, b, _, 5+6, _),
     F1 = F0(_, e),
     ok = F1(c),
@@ -39,36 +39,36 @@ test_cut(TestM) ->
     ok = F3(?MODULE, 11),
     F4 = _:_(_), %% this isn't getting silly at all...
     true = 3 == F4(math, sqrt, 9),
-    TestM:passed().
+    Passed().
 
 foo(a, b, c, 11, e) -> ok.
 
-test_cut_nested(TestM) ->
+test_cut_nested(Passed) ->
     F = f1(1, f2(1 + _), _),
     %% should be:
     %% F = \X -> f1(1, f2(\Y -> 1 + Y), X)
     ok = F(3),
-    TestM:passed().
+    Passed().
 
 f1(N, M, L) when N + M =:= L -> ok.
 f2(Nf) -> Nf(1).
 
-test_cut_op(TestM) ->
+test_cut_op(Passed) ->
     F = 1 + _,
     3 = F(2),
-    TestM:passed().
+    Passed().
 
-test_cut_unary_op(TestM) ->
+test_cut_unary_op(Passed) ->
     F = -_,
     0 = 1 + F(1),
-    TestM:passed().
+    Passed().
 
-test_cut_tuple(TestM) ->
+test_cut_tuple(Passed) ->
     {foo, _} = {foo, F} = {foo, {bar, _}},
     {bar, qux} = F(qux),
-    TestM:passed().
+    Passed().
 
-test_cut_record(TestM) ->
+test_cut_record(Passed) ->
     true = #r{} =/= #r{f3 = _},
     orange = ((#r{f3 = _})(orange))#r.f3,
     {r, foo, bar, baz} = (#r{f1 = _, f3 = _, f2 = _})(foo, baz, bar),
@@ -81,24 +81,24 @@ test_cut_record(TestM) ->
     gerbil = Getter(Setter(R)),
     Setter2 = _#r{f2 = _},
     hamster = Getter(Setter2(R, hamster)),
-    TestM:passed().
+    Passed().
 
-test_cut_record_nested(TestM) ->
+test_cut_record_nested(Passed) ->
     F = #r{f1 = #r{f1 = _, f3 = _}, f2 = _},
     R = F(apple),
     F1 = R#r.f1,
     #r{f1 = orange, f3 = banana} = F1(orange, banana),
-    TestM:passed().
+    Passed().
 
-test_cut_binary(TestM) ->
+test_cut_binary(Passed) ->
     <<"AbA", _/binary>> = (<<65, _, 65>>)($b),
     F = <<_:_>>,
     G = F(15, _),
     <<>> = G(0),
     <<1:1/unsigned, 1:1/unsigned, 1:1/unsigned, 1:1/unsigned>> = G(4),
-    TestM:passed().
+    Passed().
 
-test_cut_list(TestM) ->
+test_cut_list(Passed) ->
     F = [_|_],
     [a,b] = F(a,[b]),
     G = [_, _ | [33]],
@@ -116,9 +116,9 @@ test_cut_list(TestM) ->
     I = [_, [_]],
     [a, I1] = I(a),
     [b] = I1(b),
-    TestM:passed().
+    Passed().
 
-test_cut_case(TestM) ->
+test_cut_case(Passed) ->
     F = case _ of
             N when is_integer(N) andalso 0 =:= (N rem 2) ->
                 even;
@@ -130,29 +130,30 @@ test_cut_case(TestM) ->
     even = F(1234),
     odd = F(6789),
     not_a_number = F(my_atom),
-    TestM:passed().
+    Passed().
 
-test_cut_comprehensions(TestM) ->
+test_cut_comprehensions(Passed) ->
     F = << <<(1 + (X*2))>> || _ <- _, X <- _ >>, %% Note, this'll only be a /2 !
     <<"AAA">> = F([a,b,c], [32]),
     F1 = [ {X, Y, Z} || X <- _, Y <- _, Z <- _,
                         math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2) ],
     [{3,4,5}, {4,3,5}, {6,8,10}, {8,6,10}] =
         lists:usort(F1(lists:seq(1,10), lists:seq(1,10), lists:seq(1,10))),
-    TestM:passed().
+    Passed().
 
 test() ->
     TestM = test_m:new(identity_m),
+    Passed = fun () -> TestM:passed() end,
     TestM:run(do([TestM ||
-                     test_cut(TestM),
-                     test_cut_nested(TestM),
-                     test_cut_op(TestM),
-                     test_cut_unary_op(TestM),
-                     test_cut_tuple(TestM),
-                     test_cut_record(TestM),
-                     test_cut_record_nested(TestM),
-                     test_cut_binary(TestM),
-                     test_cut_list(TestM),
-                     test_cut_case(TestM),
-                     test_cut_comprehensions(TestM)
+                     test_cut(Passed),
+                     test_cut_nested(Passed),
+                     test_cut_op(Passed),
+                     test_cut_unary_op(Passed),
+                     test_cut_tuple(Passed),
+                     test_cut_record(Passed),
+                     test_cut_record_nested(Passed),
+                     test_cut_binary(Passed),
+                     test_cut_list(Passed),
+                     test_cut_case(Passed),
+                     test_cut_comprehensions(Passed)
                  ]), [report, {name, ?MODULE}]).
