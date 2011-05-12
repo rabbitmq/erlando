@@ -19,30 +19,30 @@
 
 -compile(export_all).
 
-test_sequence(TestM) ->
+test_sequence(Passed) ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
     {just, List} = monad:sequence(maybe_m, ListM),
-    TestM:passed().
+    Passed().
 
-test_join(TestM) ->
+test_join(Passed) ->
     {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
-    TestM:passed().
+    Passed().
 
-test_maybe(TestM) ->
+test_maybe(Passed) ->
     nothing = maybe(atom),
     {just, 9} = maybe(3),
-    TestM:passed().
+    Passed().
 
 maybe(Arg) ->
     do([maybe_m
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
 
-test_fib(TestM) ->
+test_fib(Passed) ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
                      [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
-    TestM:passed().
+    Passed().
 
 %% Classic monadic implementation of fibonnaci
 fib_m(N) ->
@@ -59,7 +59,7 @@ fib_rec(N) when N >= 0 -> fib_rec(N, 0, 1).
 fib_rec(0, _X, Y) -> Y;
 fib_rec(N,  X, Y) -> fib_rec(N-1, Y, X+Y).
 
-test_list(TestM) ->
+test_list(Passed) ->
     %% Demonstrate equivalence of list comprehensions and list monad
     A = [{X,Y} || X <- "abcd",
                   Y <- [1,2]],
@@ -77,9 +77,9 @@ test_list(TestM) ->
                       monad_plus:guard(
                         list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
                       return({X,Y,Z})]),
-    TestM:passed().
+    Passed().
 
-test_omega(TestM) ->
+test_omega(Passed) ->
     A = [{X,Y,Z} || X <- "abcd",
                     Y <- lists:seq(1,5),
                     Z <- lists:seq(11,15)],
@@ -89,15 +89,16 @@ test_omega(TestM) ->
                        return({X,Y,Z})]),
     true = A =/= B,
     true = A =:= lists:usort(B),
-    TestM:passed().
+    Passed().
 
 test() ->
     TestM = test_m:new(identity_m),
+    Passed = fun () -> TestM:passed() end,
     TestM:run(do([TestM ||
-                     test_sequence(TestM),
-                     test_join(TestM),
-                     test_maybe(TestM),
-                     test_fib(TestM),
-                     test_list(TestM),
-                     test_omega(TestM)
+                     test_sequence(Passed),
+                     test_join(Passed),
+                     test_maybe(Passed),
+                     test_fib(Passed),
+                     test_list(Passed),
+                     test_omega(Passed)
                  ]), [report, {name, ?MODULE}]).
