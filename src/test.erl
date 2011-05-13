@@ -71,13 +71,11 @@ test_funs(ErrorT, [Fun|Funs]) when is_function(Fun, 0) ->
 
 
 hoist(ErrorT, Label, PlainFun) ->
-    monad:join(
-      ErrorT,
-      ErrorT:return(
-        try
-            PlainFun(),
-            ErrorT:return(passed)
-        catch
-            Class:Reason ->
-                ErrorT:fail({Label, Class, Reason, erlang:get_stacktrace()})
-        end)).
+    do([ErrorT ||
+           try
+               PlainFun(),
+               return(passed)
+           catch
+               Class:Reason ->
+                   fail({Label, Class, Reason, erlang:get_stacktrace()})
+           end]).
