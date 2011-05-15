@@ -32,8 +32,8 @@ To use any of these parse transformers, you must add the necessary
     ...
 
 Then, when compiling `test.erl`, you must ensure `erlc` can locate
-`cut.beam` by passing the suitable path to `erlc` with a `-pa` or
-`-pz` argument. For example:
+`cut.beam` or `do.beam` by passing the suitable path to `erlc` with a
+`-pa` or `-pz` argument. For example:
 
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/cut.erl
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/do.erl
@@ -330,7 +330,7 @@ others are:
 * `return/1`: This *lifts* a value into the monad. We'll see examples
   of this shortly.
 
-* `fail/1`: This takes a string, describing the error encountered, and
+* `fail/1`: This takes a term describing the error encountered, and
   informs whichever monad currently in use that some sort of error has
   occurred.
 
@@ -482,8 +482,8 @@ errors by an `{error, Reason}` tuple:
 
 #### Monad Transformers
 
-Monads can be nested: not just by having do-blocks inside do-blocks,
-but also by defining a monad as a transformation of another, inner
+Monads can be *nested* by having do-blocks inside do-blocks, and
+*parameterized* by defining a monad as a transformation of another, inner,
 monad. The State Transform is a very commonly used monad transformer,
 and is especially relevant for Erlang. Because Erlang is a
 single-assignment language, it's very common to end up with a lot of
@@ -497,11 +497,15 @@ code that incrementally numbers variables:
     {Crop, State6} = harvest(State5),
     ...
 
-This is hideously annoying, because not only does it look awful, but
-you also have to renumber variables across many lines whenever you add
-or remove lines. Wouldn't it be nice if we could abstract out the
-`State`? - we could have a monad encapsulate the state and provide it
-and collect it to and from the functions we wish to run.
+This is doubly annoying, not only because it looks awful, but also
+because you have to re-number many variables and references whenever a
+line is added or removed. Wouldn't it be nice if we could abstract out the
+`State`? We could then have a monad encapsulate the state and provide
+it to (and collect it from) the functions we wish to run.
+
+> Our implementation of monad-transformers (like State) uses a "hidden feature"
+of the Erlang distribution called *parameterized modules*. These are
+described in [Parameterized Modules in Erlang](http://ftp.sunet.se/pub/lang/erlang/workshop/2003/paper/p29-carlsson.pdf).
 
 The State-transform can be applied to any monad. If we apply it to the
 Identity-monad then we get what we're looking for. The key extra
@@ -526,9 +530,13 @@ can write:
 
           ]), undefined).
 
-We start by creating a State-transform over the Identity-monad. We set
-up a couple of shorthands for running functions that either just
-modify the state, or modify the state and return a result. Whilst
+We start by creating a State-transform over the Identity-monad.
+
+> This is the syntax for *instantiating* parameterized modules. `StateT` is a
+variable referencing a module instance which, in this case, is a monad.
+
+We set up two shorthands for running functions that either just
+modify the state, or modify the state *and* return a result. Whilst
 there's a bit of bookkeeping to do, we achieve our goal: there are no
 state variables now to renumber whenever we make a change: we use cut
 to leave holes in the functions where State should be fed in, and we
@@ -539,17 +547,16 @@ State-transform does the rest.
 
 ### Beyond Monads
 
-There are also some standard monad functions such as `join/2` and
-`sequence/2` available in the `monad` module. We also have implemented
+There are some standard monad functions such as `join/2` and
+`sequence/2` available in the `monad` module. We have also implemented
 `monad_plus` which works for monads where there's an obvious sense of
-*zero* (currently Maybe-monad, List-monad, and Omega-monad), and the
-associated functions `guard`, `msum` and `mfilter` are available in
-the `monad_plus` module.
+*zero*  and *plus* (currently Maybe-monad, List-monad, and Omega-monad).
+The associated functions `guard`, `msum` and `mfilter` are available
+in the `monad_plus` module.
 
 In many cases, a fairly mechanical translation from Haskell to Erlang
-is possible, so converting other monads or combinators should be
-fairly straightforward. However, the lack of type classes in Erlang is
-severely limiting.
+is possible, so in many cases converting other monads or combinators should
+be straightforward. However, the lack of type classes in Erlang is limiting.
 
 
 
