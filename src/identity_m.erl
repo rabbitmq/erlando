@@ -17,7 +17,7 @@
 -module(identity_m).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 
 -ifdef(use_specs).
 -type(monad(A) :: A).
@@ -25,8 +25,6 @@
 -endif.
 
 '>>='(X, Fun) -> Fun(X).
-
-'>>'(_X, Fun) -> Fun().
 
 return(X) -> X.
 fail(X)   -> throw({error, X}).

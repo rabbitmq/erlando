@@ -42,11 +42,20 @@ forms([F0|Fs0]) ->
     [F1|Fs1];
 forms([]) -> [].
 
+%% -type form(Form) -> Form.
+
+form({attribute,Line,Attr,Val}) ->      %The general attribute.
+    {attribute,Line,Attr,Val};
 form({function,Line,Name0,Arity0,Clauses0}) ->
     {Name,Arity,Clauses} = function(Name0, Arity0, Clauses0),
     {function,Line,Name,Arity,Clauses};
-form(Other) ->
-    Other.
+% Mnemosyne, ignore...
+form({rule,Line,Name,Arity,Body}) ->
+    {rule,Line,Name,Arity,Body}; % Dont dig into this
+%% Extra forms from the parser.
+form({error,E}) -> {error,E};
+form({warning,W}) -> {warning,W};
+form({eof,Line}) -> {eof,Line}.
 
 %% -type function(atom(), integer(), [Clause]) -> {atom(),integer(),[Clause]}.
 
@@ -65,15 +74,6 @@ clauses([]) -> [].
 
 clause({clause, Line, Head, Guard, Body}) ->
     {clause, Line, Head, Guard, exprs(Body)}.
-
-%% -type exprs([Expression]) -> [Expression].
-%%  These expressions are processed "sequentially" for purposes of variable
-%%  definition etc.
-
-exprs([E0|Es]) ->
-    E1 = expr(E0),
-    [E1|exprs(Es)];
-exprs([]) -> [].
 
 %% -type pattern(Pattern) -> Pattern.
 %%  N.B. Only valid patterns are included here.
@@ -143,8 +143,7 @@ bit_types([]) ->
     [];
 bit_types([Atom | Rest]) when is_atom(Atom) ->
     [Atom | bit_types(Rest)];
-bit_types([{Atom, Integer} | Rest])
-  when is_atom(Atom) andalso is_integer(Integer) ->
+bit_types([{Atom, Integer} | Rest]) when is_atom(Atom), is_integer(Integer) ->
     [{Atom, Integer} | bit_types(Rest)].
 
 
@@ -169,6 +168,15 @@ pattern_fields([{record_field,Lf,{var,La,'_'},P0}|Pfs]) ->
     [{record_field,Lf,{var,La,'_'},P1}|pattern_fields(Pfs)];
 pattern_fields([]) -> [].
 
+%% -type exprs([Expression]) -> [Expression].
+%%  These expressions are processed "sequentially" for purposes of variable
+%%  definition etc.
+
+exprs([E0|Es]) ->
+    E1 = expr(E0),
+    [E1|exprs(Es)];
+exprs([]) -> [].
+
 %% -type expr(Expression) -> Expression.
 
 expr({var, Line, V})     -> {var, Line, V};
@@ -178,13 +186,16 @@ expr({atom, Line, A})    -> {atom, Line, A};
 expr({string, Line, S})  -> {string, Line, S};
 expr({char, Line, C})    -> {char, Line, C};
 expr({nil, Line})        -> {nil, Line};
-expr({cons, Line, H0, T0}) ->
-    H1 = expr(H0),
-    T1 = expr(T0), %% They see the same variables
-    case find_cut_vars([H1, T1]) of
-        {[], _H2T2} ->
+expr({cons, Line, H0, T0} = Cons) ->
+    %% We need to find cut vars in T0 _before_ recursing.
+    case find_cons_cut_vars([Cons], T0) of
+        {[], _H1T1} ->
+            H1 = expr(H0),
+            T1 = expr(T0), %% They see the same variables
             {cons, Line, H1, T1};
-        {Pattern, [H2, T2]} ->
+        {Pattern, {cons, Line, H1, T1}} ->
+            H2 = expr(H1),
+            T2 = expr(T1),
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
                                       [{cons, Line, H2, T2}]}]}}
     end;
@@ -223,6 +234,9 @@ expr({tuple, Line, Es0}) ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
                                       [{tuple, Line, Es2}]}]}}
     end;
+%%expr({struct,Line,Tag,Es0}) ->
+%%    Es1 = pattern_list(Es0),
+%%    {struct,Line,Tag,Es1};
 expr({record_index, Line, Name, Field0}) ->
     %% The parser prevents Field0 from being a genuine expression, so
     %% can't do a cut here.
@@ -503,6 +517,28 @@ find_call_cut_vars(F) ->
           ({var, _Line, _Var}, [Var]) -> Var
       end,
       [F]).
+
+find_cons_cut_vars(HeadsRev, {cons, _Line, _Head, Tail} = Cons) ->
+    find_cons_cut_vars([Cons | HeadsRev], Tail);
+find_cons_cut_vars(HeadsRev, Other) ->
+    Heads = lists:reverse([Other|HeadsRev]),
+    {Pattern, Heads1} =
+        cut_vars(
+          fun ({cons, _Line, {var, _Line1, '_'} = Var, _Tail}) -> [Var];
+              ({var, _Line, '_'} = Var)                        -> [Var];
+              (_)                                              -> []
+          end,
+          fun ({cons, Line, {var, _Line1, '_'}, Tail}, [Var]) ->
+                  {cons, Line, Var, Tail};
+              ({var, _Line, '_'}, [Var]) ->
+                  Var
+          end,
+          Heads),
+    {Pattern,
+     lists:foldr(
+       fun ({cons, Line, Head, _Tail}, Tail) -> {cons, Line, Head, Tail};
+           (Tail, undefined)                 -> Tail
+       end, undefined, Heads1)}.
 
 find_cut_vars(As) ->
     cut_vars(fun ({var, _Line, '_'} = Var) -> [Var];

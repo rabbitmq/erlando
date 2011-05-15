@@ -15,24 +15,26 @@
 %%
 
 -module(test_do).
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 
 -compile(export_all).
 
 test_sequence() ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
-    {just, List} = monad:sequence(maybe_m, ListM),
-    passed.
+    {just, List} = monad:sequence(maybe_m, ListM).
 
 test_join() ->
-    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
-    passed.
+    {just, 5} = monad:join(maybe_m,
+                           maybe_m:return(maybe_m:return(5))),
+    {just, 5} = monad:join(maybe_m,
+                           do([maybe_m || return(maybe_m:return(5))])),
+    {just, 5} = monad:join(maybe_m,
+                           do([maybe_m || return(do([maybe_m || return(5)]))])).
 
 test_maybe() ->
     nothing = maybe(atom),
-    {just, 9} = maybe(3),
-    passed.
+    {just, 9} = maybe(3).
 
 maybe(Arg) ->
     do([maybe_m
@@ -41,8 +43,7 @@ maybe(Arg) ->
 
 test_fib() ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
-                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
-    passed.
+                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]).
 
 %% Classic monadic implementation of fibonnaci
 fib_m(N) ->
@@ -76,8 +77,7 @@ test_list() ->
                       Y <- lists:seq(X,Z),
                       monad_plus:guard(
                         list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
-                      return({X,Y,Z})]),
-    passed.
+                      return({X,Y,Z})]).
 
 test_omega() ->
     A = [{X,Y,Z} || X <- "abcd",
@@ -88,13 +88,13 @@ test_omega() ->
                        Z <- lists:seq(11,15),
                        return({X,Y,Z})]),
     true = A =/= B,
-    true = A =:= lists:usort(B),
-    passed.
+    true = A =:= lists:usort(B).
 
 test() ->
-    passed = do([test_m || test_sequence(),
-                           test_join(),
-                           test_maybe(),
-                           test_fib(),
-                           test_list(),
-                           test_omega()]).
+    test:test([{?MODULE, [test_sequence,
+                          test_join,
+                          test_maybe,
+                          test_fib,
+                          test_list,
+                          test_omega]}],
+              [report, {name, ?MODULE}]).
