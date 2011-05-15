@@ -19,7 +19,7 @@
 -module(list_m).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 
 -behaviour(monad_plus).
 -export([mzero/0, mplus/2]).
@@ -36,9 +36,6 @@
 
 '>>='(X, Fun) -> lists:append([Fun(E) || E <- X]).
 %%               lists:foldr(fun (E, Acc) -> Fun(E) ++ Acc end, [], X).
-
-'>>'(X, Fun) -> lists:append([Fun() || _E <- X]).
-%%              lists:foldr(fun (_E, Acc) -> Fun() ++ Acc end, [], X).
 
 return(X) -> [X].
 fail(_X)  -> [].
