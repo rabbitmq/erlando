@@ -352,7 +352,7 @@ evaluated. The only solution here would be to make the basic monad
 type a function, which would then mean that the 2nd argument to
 `>>=/2` would become a function to a function to a result! However, it
 is required that `'>>'(A, B)` behaves identically to `'>>='(A, fun (_)
--> B end)`, and so that is what we do: whenever we come
+-> B end)`, and so that is what we do: whenever we come to a
 `do([Monad || A, B ])`, we rewrite it to `'>>='(A, fun (_) -> B end)`
 rather than `'>>'(A, B)`. The effect of this is that the `>>/2`
 operator does not exist.
