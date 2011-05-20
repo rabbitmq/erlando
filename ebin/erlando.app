@@ -3,7 +3,7 @@
   {vsn, "%%VSN%%"},
   {modules, [cut,
              do,
-             error_m,
+             error_t,
              identity_m,
              list_m,
              maybe_m,
@@ -11,7 +11,7 @@
              monad_plus,
              omega_m,
              state_t,
-             test_m
+             test
             ]},
   {registered, []},
   {applications, []}]}.
