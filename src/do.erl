@@ -257,10 +257,7 @@ expr({call, _Line, {atom, _Line1, do},
      MonadStack) when AtomOrVar =:= atom orelse AtomOrVar =:= var ->
     %% 'do' calls of a particular form:
     %%  do([ MonadMod || Qualifiers ])
-    %%io:format("~nDO [====~n[~p || ~p]~n", [Monad, Qs]),
-    Expr = do_syntax(Qs, [Monad|MonadStack]),
-    %%io:format("    ===>~n~p~nEND ====]~n", [Expr]),
-    Expr;
+    do_syntax(Qs, [Monad|MonadStack]);
 %%  'return' and 'fail' syntax detection and transformation:
 expr({call, Line, {atom, Line1, ReturnOrFail}, As0},
      [Monad|_Monads] = MonadStack) when ReturnOrFail =:= return orelse
