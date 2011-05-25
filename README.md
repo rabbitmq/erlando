@@ -456,6 +456,15 @@ can be transformed into the much shorter
                                  file:sync(Hdl)])),
             file:close(Hdl),
             Result]).
+    
+    make_binary(Bin) when is_binary(Bin) ->
+        error_m:return(Bin);
+    make_binary(List) ->
+        try
+            error_m:return(iolist_to_binary(List))
+        catch error:Reason ->
+                error_m:fail(Reason)
+        end.
 
 Note that we have a nested do-block so that, as with the non-monadic
 code, we ensure that once the file is opened, we always call
@@ -474,7 +483,7 @@ errors by an `{error, Reason}` tuple:
     -export(['>>='/2, return/1, fail/1]).
     
     '>>='({error, _Err} = Error, _Fun) -> Error;
-    '>>='({ok, Result}            Fun) -> Fun(Result);
+    '>>='({ok, Result},           Fun) -> Fun(Result);
     '>>='(ok,                     Fun) -> Fun(ok).
     
     return(X) -> {ok,    X}.

@@ -21,16 +21,19 @@
 -export(['>>='/2, return/1, fail/1, run/1]).
 
 -ifdef(use_specs).
--type(monad(A) :: {'ok', A} | {'error', any()}).
+-type(monad(A) :: fun (() -> {'ok', A} | {'error', any()})).
 -include("monad_specs.hrl").
 -endif.
 
 '>>='(X, Fun) -> fun () ->
-                         case X() of
-                             {error, _Err} = Error -> Error;
-                             {ok,  Result}         -> (Fun(Result))();
-                             ok                    -> (Fun(ok))()
-                         end
+                         do([InnerMonad ||
+                                R <- X(),
+                                case R of
+                                    {error, _Err} = Error -> Error;
+                                    {ok,  Result}         -> (Fun(Result))();
+                                    ok                    -> (Fun(ok))()
+                                end
+                            ])
                  end.
 
 return(X) -> fun () -> InnerMonad:return({ok, X}) end.
