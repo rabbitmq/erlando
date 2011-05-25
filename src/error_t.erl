@@ -21,7 +21,7 @@
 -export(['>>='/2, return/1, fail/1, run/1]).
 
 -ifdef(use_specs).
--type(monad(A) :: fun (() -> {'ok', A} | {'error', any()})).
+-type(monad(A) :: fun (() -> 'ok' | {'ok', A} | {'error', any()})).
 -include("monad_specs.hrl").
 -endif.
 
