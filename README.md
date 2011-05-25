@@ -450,10 +450,10 @@ can be transformed into the much shorter
         Modes1 = [binary, write | (Modes -- [binary, write])],
         do([error_m ||
             Bin <- make_binary(Data),
-            {ok, Hdl} <- file:open(Path, Modes1),
-            {ok, Result} <- return(do([error_m ||
-                                       ok <- file:write(Hdl, Bin),
-                                       file:sync(Hdl)])),
+            Hdl <- file:open(Path, Modes1),
+            Result <- return(do([error_m ||
+                                 file:write(Hdl, Bin),
+                                 file:sync(Hdl)])),
             file:close(Hdl),
             Result]).
 
@@ -474,7 +474,8 @@ errors by an `{error, Reason}` tuple:
     -export(['>>='/2, return/1, fail/1]).
     
     '>>='({error, _Err} = Error, _Fun) -> Error;
-    '>>='(Result,                 Fun) -> Fun(Result).
+    '>>='({ok, Result}            Fun) -> Fun(Result);
+    '>>='(ok,                     Fun) -> Fun(ok).
     
     return(X) -> {ok,    X}.
     fail(X)   -> {error, X}.
