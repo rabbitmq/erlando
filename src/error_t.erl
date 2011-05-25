@@ -28,7 +28,8 @@
 '>>='(X, Fun) -> fun () ->
                          case X() of
                              {error, _Err} = Error -> Error;
-                             {ok,  Result}         -> (Fun(Result))()
+                             {ok,  Result}         -> (Fun(Result))();
+                             ok                    -> (Fun(ok))()
                          end
                  end.
 
