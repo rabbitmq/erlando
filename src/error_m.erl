@@ -31,5 +31,6 @@
 '>>='({ok, Result},           Fun) -> Fun(Result);
 '>>='(ok,                     Fun) -> Fun(ok).
 
-return(X) -> {ok,    X}.
-fail(X)   -> {error, X}.
+return(ok) -> ok;
+return(X)  -> {ok,    X}.
+fail(X)    -> {error, X}.
