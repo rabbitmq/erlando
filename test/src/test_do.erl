@@ -90,11 +90,33 @@ test_omega() ->
     true = A =/= B,
     true = A =:= lists:usort(B).
 
+test_error_t_list() ->
+    M = error_t:new(list_m),
+    R = M:run(do([M || E1 <- M:lift([1, 2, 3]),
+                       E2 <- M:lift([4, 5, 6]),
+                       case (E1 * E2) rem 2 of
+                           0 -> return({E1, E2});
+                           _ -> fail(not_even_product)
+                       end])),
+    R = [{ok, {1, 4}}, {error, not_even_product}, {ok, {1, 6}},
+         {ok, {2, 4}}, {ok, {2, 5}},              {ok, {2, 6}},
+         {ok, {3, 4}}, {error, not_even_product}, {ok, {3, 6}}],
+
+    %% Compare with the non-error_t version, which will remove failures:
+    S = do([list_m || E1 <- [1, 2, 3],
+                      E2 <- [4, 5, 6],
+                      case (E1 * E2) rem 2 of
+                          0 -> return({E1, E2});
+                          _ -> fail(not_even_product)
+                      end]),
+    S = [{1, 4}, {1, 6}, {2, 4}, {2, 5}, {2, 6}, {3, 4}, {3, 6}].
+
 test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
                           test_maybe,
                           test_fib,
                           test_list,
-                          test_omega]}],
+                          test_omega,
+                          test_error_t_list]}],
               [report, {name, ?MODULE}]).

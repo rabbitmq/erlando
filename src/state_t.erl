@@ -19,7 +19,8 @@
 
 -behaviour(monad).
 -export(['>>='/2, return/1, fail/1]).
--export([get/0, put/1, eval/2, exec/2, run/2, modify/1, modify_and_return/1]).
+-export([get/0, put/1, eval/2, exec/2, run/2,
+         modify/1, modify_and_return/1, lift/1]).
 
 -ifdef(use_specs).
 -type(monad(A) :: fun ((S) -> {A, S})).
@@ -47,3 +48,5 @@ run(Monad, S)  -> do([InnerMonad || Monad(S)]).
 modify(Fun) -> fun (S) -> InnerMonad:return({ok, Fun(S)}) end.
 
 modify_and_return(Fun) -> fun (S) -> InnerMonad:return(Fun(S)) end.
+
+lift(X) -> fun (S) -> do([InnerMonad || A <- X, return({A, S})]) end.

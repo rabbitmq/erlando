@@ -18,7 +18,7 @@
 -compile({parse_transform, do}).
 
 -behaviour(monad).
--export(['>>='/2, return/1, fail/1, run/1]).
+-export(['>>='/2, return/1, fail/1, run/1, lift/1]).
 
 -ifdef(use_specs).
 -type(monad(A) :: fun (() -> 'ok' | {'ok', A} | {'error', any()})).
@@ -29,14 +29,15 @@
                          do([InnerMonad ||
                                 R <- X(),
                                 case R of
-                                    {error, _Err} = Error -> Error;
+                                    {error, _Err} = Error -> return(Error);
                                     {ok,  Result}         -> (Fun(Result))();
                                     ok                    -> (Fun(ok))()
                                 end
                             ])
                  end.
 
-return(X) -> fun () -> InnerMonad:return({ok, X}) end.
+return(ok) -> fun () -> InnerMonad:return(ok) end;
+return(X)  -> fun () -> InnerMonad:return({ok, X}) end.
 
 %% This is the equivalent of
 %%     fail msg = ErrorT $ return (Left (strMsg msg))
@@ -50,3 +51,5 @@ return(X) -> fun () -> InnerMonad:return({ok, X}) end.
 fail(X)   -> fun () -> InnerMonad:return({error, X}) end.
 
 run(Fun) -> Fun().
+
+lift(X) -> fun () -> do([InnerMonad || A <- X, return({ok, A})]) end.
