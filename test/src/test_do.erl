@@ -15,24 +15,26 @@
 %%
 
 -module(test_do).
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 
 -compile(export_all).
 
 test_sequence() ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
-    {just, List} = monad:sequence(maybe_m, ListM),
-    passed.
+    {just, List} = monad:sequence(maybe_m, ListM).
 
 test_join() ->
-    {just, 5} = monad:join(maybe_m, maybe_m:return(maybe_m:return(5))),
-    passed.
+    {just, 5} = monad:join(maybe_m,
+                           maybe_m:return(maybe_m:return(5))),
+    {just, 5} = monad:join(maybe_m,
+                           do([maybe_m || return(maybe_m:return(5))])),
+    {just, 5} = monad:join(maybe_m,
+                           do([maybe_m || return(do([maybe_m || return(5)]))])).
 
 test_maybe() ->
     nothing = maybe(atom),
-    {just, 9} = maybe(3),
-    passed.
+    {just, 9} = maybe(3).
 
 maybe(Arg) ->
     do([maybe_m
@@ -41,8 +43,7 @@ maybe(Arg) ->
 
 test_fib() ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
-                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]),
-    passed.
+                     [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]).
 
 %% Classic monadic implementation of fibonnaci
 fib_m(N) ->
@@ -76,8 +77,7 @@ test_list() ->
                       Y <- lists:seq(X,Z),
                       monad_plus:guard(
                         list_m, math:pow(X,2) + math:pow(Y,2) == math:pow(Z,2)),
-                      return({X,Y,Z})]),
-    passed.
+                      return({X,Y,Z})]).
 
 test_omega() ->
     A = [{X,Y,Z} || X <- "abcd",
@@ -88,13 +88,35 @@ test_omega() ->
                        Z <- lists:seq(11,15),
                        return({X,Y,Z})]),
     true = A =/= B,
-    true = A =:= lists:usort(B),
-    passed.
+    true = A =:= lists:usort(B).
+
+test_error_t_list() ->
+    M = error_t:new(list_m),
+    R = M:run(do([M || E1 <- M:lift([1, 2, 3]),
+                       E2 <- M:lift([4, 5, 6]),
+                       case (E1 * E2) rem 2 of
+                           0 -> return({E1, E2});
+                           _ -> fail(not_even_product)
+                       end])),
+    R = [{ok, {1, 4}}, {error, not_even_product}, {ok, {1, 6}},
+         {ok, {2, 4}}, {ok, {2, 5}},              {ok, {2, 6}},
+         {ok, {3, 4}}, {error, not_even_product}, {ok, {3, 6}}],
+
+    %% Compare with the non-error_t version, which will remove failures:
+    S = do([list_m || E1 <- [1, 2, 3],
+                      E2 <- [4, 5, 6],
+                      case (E1 * E2) rem 2 of
+                          0 -> return({E1, E2});
+                          _ -> fail(not_even_product)
+                      end]),
+    S = [{1, 4}, {1, 6}, {2, 4}, {2, 5}, {2, 6}, {3, 4}, {3, 6}].
 
 test() ->
-    passed = do([test_m || test_sequence(),
-                           test_join(),
-                           test_maybe(),
-                           test_fib(),
-                           test_list(),
-                           test_omega()]).
+    test:test([{?MODULE, [test_sequence,
+                          test_join,
+                          test_maybe,
+                          test_fib,
+                          test_list,
+                          test_omega,
+                          test_error_t_list]}],
+              [report, {name, ?MODULE}]).

@@ -10,10 +10,15 @@
 %%
 %% The Original Code is Erlando.
 %%
-%% The Initial Developer of the Original Code is VMware, Inc.
-%% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
+%% The Initial Developer of the Original Code is Alex Kropivny.
+%% Copyright (c) 2011-2011 Alex Kropivny; VMware, Inc.
+%% All rights reserved.
 %%
 
--spec(return/1 :: (A) -> monad(A)).
--spec(fail/1 :: (any()) -> monad(_A)).
--spec('>>='/2 :: (monad(A), fun ((A) -> monad(B))) -> monad(B)).
+-module(erlando_test).
+-compile(export_all).
+
+
+all_test_() ->
+    [ fun test_cut:test/0,
+      fun test_do:test/0 ].

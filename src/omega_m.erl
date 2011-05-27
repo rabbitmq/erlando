@@ -29,7 +29,7 @@
 -module(omega_m).
 
 -behaviour(monad).
--export(['>>='/2, '>>'/2, return/1, fail/1]).
+-export(['>>='/2, return/1, fail/1]).
 -export([diagonal/1]).
 
 -behaviour(monad_plus).
@@ -42,7 +42,6 @@
 -endif.
 
 '>>='(X, Fun) -> diagonal([Fun(E) || E <- X]).
-'>>'(X, Fun)  -> diagonal([Fun() || _E <- X]).
 
 return(X) -> [X].
 fail(_X)  -> [].
