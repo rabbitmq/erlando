@@ -5,3 +5,4 @@
 ^cover/
 ^erl_crash.dump$
 ^c_src/libhstcp.so$
+^ebin/erlando.app$
