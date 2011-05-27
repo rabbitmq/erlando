@@ -21,7 +21,7 @@
 %% AB. All Rights Reserved.''
 %%
 
--module(erlando).
+-module(do).
 
 -export([parse_transform/2]).
 
@@ -38,11 +38,20 @@ forms([F0|Fs0]) ->
     [F1|Fs1];
 forms([]) -> [].
 
+%% -type form(Form) -> Form.
+
+form({attribute,Line,Attr,Val}) ->      %The general attribute.
+    {attribute,Line,Attr,Val};
 form({function,Line,Name0,Arity0,Clauses0}) ->
     {Name,Arity,Clauses} = function(Name0, Arity0, Clauses0),
     {function,Line,Name,Arity,Clauses};
-form(Other) ->
-    Other.
+% Mnemosyne, ignore...
+form({rule,Line,Name,Arity,Body}) ->
+    {rule,Line,Name,Arity,Body}; % Dont dig into this
+%% Extra forms from the parser.
+form({error,E}) -> {error,E};
+form({warning,W}) -> {warning,W};
+form({eof,Line}) -> {eof,Line}.
 
 %% -type function(atom(), integer(), [Clause]) -> {atom(),integer(),[Clause]}.
 
@@ -61,15 +70,6 @@ clauses([]) -> [].
 
 clause({clause, Line, Head, Guard, Body}, MonadStack) ->
     {clause, Line, Head, Guard, exprs(Body, MonadStack)}.
-
-%% -type exprs([Expression]) -> [Expression].
-%%  These expressions are processed "sequentially" for purposes of variable
-%%  definition etc.
-
-exprs([E0|Es], MonadStack) ->
-    E1 = expr(E0, MonadStack),
-    [E1|exprs(Es, MonadStack)];
-exprs([], _MonadStack) -> [].
 
 %% -type pattern(Pattern) -> Pattern.
 %%  N.B. Only valid patterns are included here.
@@ -165,6 +165,15 @@ pattern_fields([{record_field,Lf,{var,La,'_'},P0}|Pfs]) ->
     [{record_field,Lf,{var,La,'_'},P1}|pattern_fields(Pfs)];
 pattern_fields([]) -> [].
 
+%% -type exprs([Expression]) -> [Expression].
+%%  These expressions are processed "sequentially" for purposes of variable
+%%  definition etc.
+
+exprs([E0|Es], MonadStack) ->
+    E1 = expr(E0, MonadStack),
+    [E1|exprs(Es, MonadStack)];
+exprs([], _MonadStack) -> [].
+
 %% -type expr(Expression) -> Expression.
 
 expr({var, Line, V}, _MonadStack)     -> {var, Line, V};
@@ -242,16 +251,23 @@ expr({'fun', Line, Body}, MonadStack) ->
         {function, M, F, A} -> %% R10B-6: fun M:F/A.
             {'fun', Line, {function, M, F, A}}
     end;
+%%  do syntax detection:
 expr({call, _Line, {atom, _Line1, do},
       [{lc, _Line2, {AtomOrVar, _Line3, _MonadModule} = Monad, Qs}]},
      MonadStack) when AtomOrVar =:= atom orelse AtomOrVar =:= var ->
-    hd(do_syntax(Qs, [Monad|MonadStack]));
+    %% 'do' calls of a particular form:
+    %%  do([ MonadMod || Qualifiers ])
+    do_syntax(Qs, [Monad|MonadStack]);
+%%  'return' and 'fail' syntax detection and transformation:
 expr({call, Line, {atom, Line1, ReturnOrFail}, As0},
      [Monad|_Monads] = MonadStack) when ReturnOrFail =:= return orelse
                                         ReturnOrFail =:= fail->
-    %% "return(Args)" or "fail(Args)" is transformed to
-    %% "Monad:return(Args)" or "Monad:fail(Args)" in the context of a
-    %% monad
+    %% 'return' calls of a particular form:
+    %%  return(Arguments), and
+    %% 'fail' calls of a particular form:
+    %%  fail(Arguments)
+    %% Transformed to:
+    %% "Monad:return(Args)" or "Monad:fail(Args)" in monadic context
     {call, Line, {remote, Line1, Monad, {atom, Line1, ReturnOrFail}},
      expr_list(As0, MonadStack)};
 expr({call, Line, F0, As0}, MonadStack) ->
@@ -349,26 +365,45 @@ fun_clauses([C0|Cs], MonadStack) ->
     [C1|fun_clauses(Cs, MonadStack)];
 fun_clauses([], _MonadStack) -> [].
 
-do_syntax([], _MonadStack) ->
-    [];
+%%  'do' syntax transformation:
+do_syntax([], [{_AtomOrVar, MLine, _MonadModule}|_MonadStack]) ->
+    erlang:error({"A 'do' construct cannot be empty", MLine});
 do_syntax([{generate, Line, _Pattern, _Expr}], _MonadStack) ->
     erlang:error({"The last statement in a 'do' construct must be an expression", Line});
-do_syntax([{generate, Line, Pattern, Expr}|Exprs],
+do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
-    %% "Pattern <- Expr, Tail"
+    %% "Pattern <- Expr, Tail" where Pattern is a simple variable
     %% is transformed to
     %% "Monad:'>>='(Expr, fun (Pattern) -> Tail')"
-    [{call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
+    %% without a fail to match clause
+    {call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
       [expr(Expr, MonadStack),
-       {'fun', Line, {clauses, [{clause, Line, [Pattern], [],
-                                 do_syntax(Exprs, MonadStack)}]}}]}];
+       {'fun', Line,
+        {clauses,
+         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}]}}]};
+do_syntax([{generate, Line, Pattern, Expr}|Exprs],
+          [Monad|_Monads] = MonadStack) ->
+    %% "Pattern <- Expr, Tail" where Pattern is not a simple variable
+    %% is transformed to
+    %% "Monad:'>>='(Expr, fun (Pattern) -> Tail')"
+    %% with a fail clause if the function does not match
+    {call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
+      [expr(Expr, MonadStack),
+       {'fun', Line,
+        {clauses,
+         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]},
+          {clause, Line, [{var, Line, '_'}], [],
+           [{call, Line, {remote, Line, Monad, {atom, Line, 'fail'}},
+           [{atom, Line, 'monad_badmatch'}]}]}]}}]};
 do_syntax([Expr], MonadStack) ->
-    [expr(Expr, MonadStack)]; %% Don't do '>>' chaining on the last elem
+    expr(Expr, MonadStack); %% Don't do '>>' chaining on the last elem
 do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
-    %% "Expr, Tail" is transformed to "Monad:'>>'(Expr, fun () -> Tail')"
+    %% "Expr, Tail" is transformed to "Monad:'>>='(Expr, fun (_) -> Tail')"
     %% Line is always the 2nd element of Expr
     Line = element(2, Expr),
-    [{call, Line, {remote, Line, Monad, {atom, Line, '>>'}},
+    {call, Line, {remote, Line, Monad, {atom, Line, '>>='}},
       [expr(Expr, MonadStack),
-       {'fun', Line, {clauses, [{clause, Line, [], [],
-                                 do_syntax(Exprs, MonadStack)}]}}]}].
+        {'fun', Line,
+          {clauses,
+            [{clause, Line,
+              [{var, Line, '_'}], [], [do_syntax(Exprs, MonadStack)]}]}}]}.

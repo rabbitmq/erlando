@@ -26,7 +26,7 @@
 -spec(mfilter/3 :: (atom(), fun ((A) -> boolean()), monad(A)) -> monad(A)).
 -endif.
 
--compile({parse_transform, erlando}).
+-compile({parse_transform, do}).
 -compile({parse_transform, cut}).
 
 behaviour_info(callbacks) ->
