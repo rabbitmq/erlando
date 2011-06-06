@@ -5,7 +5,7 @@
 ## Introduction
 
 Erlando is a set of syntax extensions for Erlang. Currently it
-consists of two syntax extensions, both of which take the form of
+consists of three syntax extensions, all of which take the form of
 [parse transformers](http://www.erlang.org/doc/man/erl_id_trans.html).
 
 * **Cut**: This adds support for cuts to Erlang. These are
@@ -19,6 +19,9 @@ consists of two syntax extensions, both of which take the form of
   and the monads and libraries are near-mechanical translations from
   the Haskell GHC libraries.
 
+* **Import As**: This adds support for importing remote functions to
+    the current module namespace *and* renaming them.
+
 
 
 ## Use
@@ -29,6 +32,7 @@ To use any of these parse transformers, you must add the necessary
     -module(test).
     -compile({parse_transform, cut}).
     -compile({parse_transform, do}).
+    -compile({parse_transform, import_as}).
     ...
 
 Then, when compiling `test.erl`, you must ensure `erlc` can locate
@@ -37,6 +41,7 @@ Then, when compiling `test.erl`, you must ensure `erlc` can locate
 
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/cut.erl
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/do.erl
+    erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/import_as.erl
     erlc -Wall +debug_info -I ./include -pa test/ebin -pa ./ebin -o test/ebin test/src/test.erl
 
 Note, if you're using QLC, you may find you need to be careful as to
@@ -567,6 +572,34 @@ in the `monad_plus` module.
 In many cases, a fairly mechanical translation from Haskell to Erlang
 is possible, so in many cases converting other monads or combinators should
 be straightforward. However, the lack of type classes in Erlang is limiting.
+
+
+
+## Import As
+
+For cosmetic reasons, it is sometimes desirable to import a remote
+function into the current module's namespace. This eliminates the need
+to continuously prefix calls to that function with its module
+name. Erlang can already do this by using the
+[`-import` attribute](http://www.erlang.org/doc/reference_manual/modules.html). However,
+this cannot alias functions which can either lead to misleading
+function names or even collisions. Consider, for example, wishing to
+import `length` functions from two remote modules. Aliasing of the
+functions is one solution to this.
+
+For example:
+
+    -import_as({lists, [{duplicate/2, dup}]}).
+    
+    test() ->
+        [a, a, a, a] = dup(4, a).
+
+As with `-import`, the left of the tuple is the module name, but the
+right of the tuple is a list of pairs, with the left being the
+original function within the module to import, including arity, and
+the right is the local name you wish to use as an alias. The
+implementation creates a local function, thus this means that the
+alias is safe to use in, e.g. `Var = fun dup/2` expressions.
 
 
 
