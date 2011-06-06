@@ -24,7 +24,9 @@
 
 test_import_as() ->
     L = rev(lists:seq(1,10)),
-    L = lists:reverse(ls(1,10)).
+    L = lists:reverse(ls(1,10)),
+    Fun = fun rev/1,
+    [b, a] = Fun([a, b]).
 
 test() ->
     test:test([{?MODULE, [test_import_as]}], [report, {name, ?MODULE}]).
