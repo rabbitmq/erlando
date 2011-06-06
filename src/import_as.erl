@@ -50,7 +50,7 @@ alias_fun(Module, {{Dest, Arity}, Alias}) when is_atom(Module) andalso
                                                is_integer(Arity) ->
     fun (Line) ->
             Vars = [{var, Line, list_to_atom("Var_" ++ integer_to_list(N))} ||
-                       N <- lists:seq(1,Arity)],
+                       N <- lists:seq(1, Arity)],
             Body = {call, Line,
                     {remote, Line, {atom, Line, Module}, {atom, Line, Dest}},
                     Vars},
