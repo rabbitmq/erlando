@@ -20,7 +20,7 @@ consists of three syntax extensions, all of which take the form of
   the Haskell GHC libraries.
 
 * **Import As**: This adds support for importing remote functions to
-    the current module namespace *and* renaming them.
+  the current module namespace *and* renaming them.
 
 
 
@@ -36,8 +36,8 @@ To use any of these parse transformers, you must add the necessary
     ...
 
 Then, when compiling `test.erl`, you must ensure `erlc` can locate
-`cut.beam` or `do.beam` by passing the suitable path to `erlc` with a
-`-pa` or `-pz` argument. For example:
+`cut.beam` or `do.beam` or `import_as.beam` by passing the suitable
+path to `erlc` with a `-pa` or `-pz` argument. For example:
 
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/cut.erl
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/do.erl
