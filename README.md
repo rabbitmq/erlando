@@ -5,43 +5,49 @@
 ## Introduction
 
 Erlando is a set of syntax extensions for Erlang. Currently it
-consists of two syntax extensions, both of which take the form of
-[parse transformers](http://www.erlang.org/doc/man/erl_id_trans.html).
+consists of three syntax extensions, all of which take the form of
+[parse-transformers](http://www.erlang.org/doc/man/erl_id_trans.html).
 
-* **Cut**: This adds support for cuts to Erlang. These are
+* **Cut**: This adds support for *cut*s to Erlang. These are
   inspired by the
-  [Scheme form of cuts](http://srfi.schemers.org/srfi-26/srfi-26.html). Cuts
+  [Scheme form of cuts](http://srfi.schemers.org/srfi-26/srfi-26.html). *Cut*s
   can be thought of as a light-weight form of abstraction, with
   similarities to partial application (or currying).
 
-* **Do**: This adds support for do-syntax and monads to
+* **Do**: This adds support for *do*-syntax and monads to
   Erlang. These are heavily inspired by [Haskell](http://haskell.org),
   and the monads and libraries are near-mechanical translations from
   the Haskell GHC libraries.
+
+* **Import As**: This adds support for importing remote functions to
+  the current module namespace with explicit control of the local
+  function names.
 
 
 
 ## Use
 
-To use any of these parse transformers, you must add the necessary
+To use any of these parse-transformers, you must add the necessary
 `-compile` attributes to your Erlang source files. For example:
 
     -module(test).
     -compile({parse_transform, cut}).
     -compile({parse_transform, do}).
+    -compile({parse_transform, import_as}).
     ...
 
 Then, when compiling `test.erl`, you must ensure `erlc` can locate
-`cut.beam` or `do.beam` by passing the suitable path to `erlc` with a
-`-pa` or `-pz` argument. For example:
+`cut.beam` or `do.beam` or `import_as.beam` by passing the suitable
+path to `erlc` with a `-pa` or `-pz` argument. For example:
 
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/cut.erl
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/do.erl
+    erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/import_as.erl
     erlc -Wall +debug_info -I ./include -pa test/ebin -pa ./ebin -o test/ebin test/src/test.erl
 
-Note, if you're using QLC, you may find you need to be careful as to
-the order of the parse transforms: I've found that the
-`-compile({parse_transform, cut}).` must occur before the
+*Note*: If you're using QLC, you may find you need to be careful as to
+the placement of the parse-transformer attributes. For example, I've
+found that `-compile({parse_transform, cut}).` must occur before
 `-include_lib("stdlib/include/qlc.hrl").`
 
 
@@ -50,8 +56,8 @@ the order of the parse transforms: I've found that the
 
 ### Motivation
 
-Cut is motivated by the frequency with which simple abstractions (in a
-lambda-calculus sense) are used in Erlang, and the relatively noisy
+The *cut* parse-transformer is motivated by the frequency with which simple
+function abstractions are used in Erlang, and the relatively noisy
 nature of declaring `fun`s. For example, it's quite common to see code
 like:
 
@@ -66,9 +72,9 @@ like:
                              my_resource_modification(Resource, B, C)
                          end).
 
-I.e. a fun is very simply created in order to perform variable capture
-from the its surrounding scope but to leave holes for further
-arguments to be provided. Using a cut, the function `my_fun` can be
+That is, a `fun` is created in order to perform variable capture
+from the surrounding scope but to leave holes for further
+arguments to be provided. Using a *cut*, the function `my_fun` can be
 rewritten as:
 
     my_fun(A, B, C) ->
@@ -77,14 +83,14 @@ rewritten as:
 
 ### Definition
 
-Normally, the variable `_` can only occur in patterns: i.e. where
+Normally, the variable `_` can only occur in patterns: that is, where a
 match occurs. This can be in assignment, in cases, and in function
 heads. For example:
 
     {_, bar} = {foo, bar}.
 
-Cut uses `_` in expressions to indicate where abstraction should
-occur. Abstraction from cuts is **always** performed on the
+*Cut* uses `_` in expressions to indicate where abstraction should
+occur. Abstraction from *cut*s is **always** performed on the
 *shallowest* enclosing expression. For example:
 
     list_to_binary([1, 2, math:pow(2, _)]).
@@ -97,7 +103,7 @@ and not
 
     fun (X) -> list_to_binary([1, 2, math:pow(2, X)]) end.
 
-It is fine to use multiple cuts in the same expression, and the
+It is fine to use multiple *cut*s in the same expression, and the
 arguments to the created abstraction will match the order in which the
 `_` var is found in the expression. For example:
 
@@ -108,8 +114,8 @@ arguments to the created abstraction will match the order in which the
         Equals12 = assert_sum_3(_, _, _, 12),
         ok = Equals12(9, 2, 1).
 
-It is perfectly legal to take cuts of cuts as the abstraction created
-by the cut is a normal `fun` expression and thus can be re-cut as
+It is perfectly legal to take *cut*s of *cut*s as the abstraction created
+by the *cut* is a normal `fun` expression and thus can be re-*cut* as
 necessary:
 
     test() ->
@@ -117,8 +123,8 @@ necessary:
         Equals5 = Equals12(_, _, 7),
         ok = Equals5(2, 3).
 
-Note that because a simple `fun` is being constructed by the cut, the
-arguments are evaluated prior to the cut function. For example:
+Note that because a simple `fun` is being constructed by the *cut*, the
+arguments are evaluated prior to the *cut* function. For example:
 
     f1(_, _) -> io:format("in f1~n").
 
@@ -132,14 +138,14 @@ will print out
     test line 1
     in f1
 
-This is because the cut creates `fun (X) -> f1(io:format("test line
+This is because the *cut* creates `fun (X) -> f1(io:format("test line
 1~n"), X) end`. Thus it is clear that `X` must be evaluated first,
 before the `fun` can be invoked.
 
 Of course, no one would be crazy enough to have side-effects in
 function argument expressions, so this will never cause any issues!
 
-Cuts are not limited to function calls. They can be used in any
+*Cut*s are not limited to function calls. They can be used in any
 expression where they make sense:
 
 
@@ -166,7 +172,7 @@ is exactly the same (right from the Erlang parser onwards) as:
 
     A = [a, b, c, d, e]
 
-I.e. those sub-lists, when they're in the tail position **do not**
+That is, those sub-lists, when they're in the tail position, **do not**
 form sub-expressions. Thus:
 
     F = [1, _, _, [_], 5 | [6, [_] | [_]]],
@@ -209,10 +215,10 @@ you're just defining another list element.
 
 See
 [test_cut.erl](http://hg.rabbitmq.com/erlando/file/default/test/src/test_cut.erl)
-for more examples, including use of cuts in list comprehensions and
+for more examples, including the use of *cut*s in list comprehensions and
 binary construction.
 
-Note that cuts are not allowed where the result of the cut can only be
+Note that *cut*s are not allowed where the result of the *cut* can only be
 useful by interacting with the evaluation scope. For example:
 
     F = begin _, _, _ end.
@@ -225,10 +231,10 @@ effect, as they're already fully evaluated by that point.
 
 ## Do
 
-The Do parse transformer permits Haskell-style *do-notation* in
+The *do* parse-transformer permits Haskell-style *do-notation* in
 Erlang, which makes using monads, and monad transformers possible and
-easy. Without *do-notation*, monads tend to look like a lot of line
-noise.
+easy. (Without *do-notation*, monads tend to look like a lot of line
+noise.)
 
 
 ### The Inevitable Monad Tutorial
@@ -239,10 +245,8 @@ What follows is a brief and mechanical introduction to monads. It
 differs from a lot of the Haskell monad tutorials, because they tend
 to view monads as a means of achieving sequencing of operations in
 Haskell, which is challenging because Haskell is a lazy
-language. Erlang is not a lazy language, but the powerful abstractions
-possible from using monads are still very worthwhile. Whilst this is a
-very mechanical tutorial, it should be possible to see the more
-advanced abstractions possible.
+language. Erlang is not a lazy language, but the abstractions
+possible from using monads are still worthwhile.
 
 Let's say we have the three lines of code:
 
@@ -280,22 +284,22 @@ Thus the function `comma/2` takes all results from the previous
 expression, and controls how and whether they are passed to the next
 expression.
 
-As defined, the `comma/2` function is the monadic function `>>=/2`.
+As defined, the `comma/2` function is the monadic function `'>>='/2`.
 
 Now it's pretty difficult to read the program with the `comma/2`
 function (especially as Erlang annoyingly doesn't allow us to define
-new infix functions), which is why some special syntax is
-necessary. Haskell has it's *do-notation*, and so we've borrowed from
+new *infix* functions), which is why some special syntax is
+desirable. Haskell has its *do-notation*, and so we've borrowed from
 that and abused Erlang's list comprehensions. Haskell also has lovely
 type-classes, which we've sort of faked specifically for monads. So,
-with the Do parse transformer, you can write in Erlang:
+with the *do* parse-transformer, you can write in Erlang:
 
     do([Monad ||
         A <- foo(),
         B <- bar(A, dog),
         ok]).
 
-which is readable and straightforward, but is transformed into:
+which is readable and straightforward, and this is transformed into:
 
     Monad:'>>='(foo(),
                 fun (A) -> Monad:'>>='(bar(A, dog),
@@ -303,9 +307,9 @@ which is readable and straightforward, but is transformed into:
 
 There is no intention that this latter form is any more readable than
 the `comma/2` form - it is not. However, it should be clear that the
-function `Monad:'>>='/2` now has complete control over what happens:
-does the fun on the right hand side ever get invoked? If so, with what
-value?
+function `Monad:'>>='/2` now has *complete* control over what happens:
+whether the `fun` on the right hand side ever gets invoked (and how often);
+and if so, with what parameter values.
 
 
 #### Lots of different types of Monads
@@ -320,11 +324,11 @@ can we do with them? Also, in the code
 
 what are the possible values of `Monad`?
 
-The answer to the first question is *almost anything*; and to the
-later question, is *any module name that implements the monad
+The answer to the former question is *almost anything*; and to the
+latter question, is *any module name that implements the monad
 behaviour*.
 
-Above, we covered one of the three monadic operators, `>>=/2`. The
+Above, we covered one of the three monadic operators, `'>>='/2`. The
 others are:
 
 * `return/1`: This *lifts* a value into the monad. We'll see examples
@@ -339,23 +343,23 @@ Note that within *do-notation*, any function call to functions named
 `fail` within the current monad.
 
 > Some people familiar with Haskell's monads may be expecting to see a
-fourth operator, `>>/2`. Interestingly, it turns out that you can't
-implement `>>/2` in a strict language unless all your monad types are
-built on top a function. This is because in a strict language,
+fourth operator, `'>>'/2`. Interestingly, it turns out that you can't
+implement `'>>'/2` in a strict language unless all your monad types are
+built on functions. This is because in a strict language,
 arguments to functions are evaluated before the function is
-invoked. For `>>=/2`, the 2nd argument is only reduced to a function
-prior to invocation of `>>=/2`. But the 2nd argument to `>>/2` is not
+invoked. For `'>>='/2`, the second argument is only reduced to a function
+prior to invocation of `'>>='/2`. But the second argument to `'>>'/2` is not
 a function, and so in strict languages, will be fully reduced prior to
-`>>/2` being invoked. This is problematic because the `>>/2` operator
+`'>>'/2` being invoked. This is problematic because the `'>>'/2` operator
 is meant to be in control of whether or not subsequent expressions are
 evaluated. The only solution here would be to make the basic monad
-type a function, which would then mean that the 2nd argument to
-`>>=/2` would become a function to a function to a result! However, it
-is required that `'>>'(A, B)` behaves identically to `'>>='(A, fun (_)
--> B end)`, and so that is what we do: whenever we come to a
+type a function, which would then mean that the second argument to
+`'>>='/2` would become a function to a function to a result!
+
+> However, it is required that `'>>'(A, B)` behaves identically to
+`'>>='(A, fun (_) -> B end)`, and so that is what we do: whenever we come to a
 `do([Monad || A, B ])`, we rewrite it to `'>>='(A, fun (_) -> B end)`
-rather than `'>>'(A, B)`. The effect of this is that the `>>/2`
-operator does not exist.
+rather than `'>>'(A, B)`. There is no `'>>'/2` operator in our Erlang monads.
 
 The simplest monad possible is the Identity-monad:
 
@@ -368,8 +372,9 @@ The simplest monad possible is the Identity-monad:
     fail(X)       -> throw({error, X}).
 
 This makes our programmatic comma behave just like Erlang's comma
-normally does. The **bind** operator (`>>=/2`) does not inspect the
-values passed to it, and always invokes the subsequent expression fun.
+normally does. The **bind** operator (that's the Haskell term for the
+`'>>='/2` monadic operator) does not inspect the
+values passed to it, and always invokes the subsequent expression function.
 
 What could we do if we did inspect the values passed to the sequencing
 combinators? One possibility results in the Maybe-monad:
@@ -384,8 +389,8 @@ combinators? One possibility results in the Maybe-monad:
     return(X) -> {just, X}.
     fail(_X)  -> nothing.
 
-Thus if the result of the preceding expression is `nothing`, then the
-subsequent expressions are not evaluated. This means that we can write
+Thus if the result of the preceding expression is `nothing`, the
+subsequent expressions are *not* evaluated. This means that we can write
 very neat looking code which immediately stops should any failure be
 encountered.
 
@@ -402,7 +407,7 @@ of the `if_safe_div_zero` function call will be `nothing`. If `Y` is
 not equal to 0, then the result of the `if_safe_div_zero` function
 call will be `{just, Fun(X / Y)}`.
 
-We see here that within the do-block, there is no mention of `nothing`
+We see here that within the *do*-block, there is no mention of `nothing`
 or `just`: they are abstracted away by the Maybe-monad. As a result,
 it is possible to change the monad in use, without having to rewrite
 any further code.
@@ -466,12 +471,12 @@ can be transformed into the much shorter
                 error_m:fail(Reason)
         end.
 
-Note that we have a nested do-block so that, as with the non-monadic
+Note that we have a nested *do*-block so, as with the non-monadic
 code, we ensure that once the file is opened, we always call
 `file:close/1` even if an error occurs in a subsequent operation. This
-is achieved by wrapping the nested do-block with a `return/1` call:
-even if the inner do-block errors, the error is *lifted* to a
-non-error value in the outer do-block, and thus execution continues to
+is achieved by wrapping the nested *do*-block with a `return/1` call:
+even if the inner *do*-block errors, the error is *lifted* to a
+non-error value in the outer *do*-block, and thus execution continues to
 the subsequent `file:close/1` call.
 
 Here we are using an Error-monad which is remarkably similar to the
@@ -492,7 +497,7 @@ errors by an `{error, Reason}` tuple:
 
 #### Monad Transformers
 
-Monads can be *nested* by having do-blocks inside do-blocks, and
+Monads can be *nested* by having *do*-blocks inside *do*-blocks, and
 *parameterized* by defining a monad as a transformation of another, inner,
 monad. The State Transform is a very commonly used monad transformer,
 and is especially relevant for Erlang. Because Erlang is a
@@ -521,7 +526,7 @@ The State-transform can be applied to any monad. If we apply it to the
 Identity-monad then we get what we're looking for. The key extra
 functionality that the State transformer provides us with is the
 ability to `get` and `set` (or just plain `modify`) state from within
-the inner monad. If we use both the Do and Cut parse transformers, we
+the inner monad. If we use both the *do* and *cut* parse-transformers, we
 can write:
 
     StateT = state_t:new(identity_m),
@@ -540,19 +545,26 @@ can write:
 
           ]), undefined).
 
-We start by creating a State-transform over the Identity-monad.
+We began by creating a State-transform over the Identity-monad:
+
+    StateT = state_t:new(identity_m),
+    ...
 
 > This is the syntax for *instantiating* parameterized modules. `StateT` is a
 variable referencing a module instance which, in this case, is a monad.
 
-We set up two shorthands for running functions that either just
-modify the state, or modify the state *and* return a result. Whilst
-there's a bit of bookkeeping to do, we achieve our goal: there are no
-state variables now to renumber whenever we make a change: we use cut
-to leave holes in the functions where State should be fed in, and we
-obey the protocol that if functions return both a result and state, it
-should be in the form of a `{Result, State}` tuple. The
-State-transform does the rest.
+and we define two shorthands for running functions that either just
+modify the state, or modify the state *and* return a result:
+
+    SM = StateT:modify(_),
+    SMR = StateT:modify_and_return(_),
+    ...
+
+There's a bit of bookkeeping required but we achieve our goal: there are no
+state variables now to renumber whenever we make a change. We used *cut*s
+to leave holes in the functions where State should be fed in; and we
+obeyed the protocol that if a function returns both a result and a state, it
+is in the form of a `{Result, State}` tuple. The State-transform does the rest.
 
 
 ### Beyond Monads
@@ -565,8 +577,38 @@ The associated functions `guard`, `msum` and `mfilter` are available
 in the `monad_plus` module.
 
 In many cases, a fairly mechanical translation from Haskell to Erlang
-is possible, so in many cases converting other monads or combinators should
-be straightforward. However, the lack of type classes in Erlang is limiting.
+is possible, so converting other monads or combinators should mostly
+be straightforward. However, the lack of type classes in Erlang is
+limiting.
+
+
+
+## Import As
+
+For cosmetic reasons, it is sometimes desirable to import a remote
+function into the current module's namespace. This eliminates the need
+to continuously prefix calls to that function with its module
+name. Erlang can already do this by using the
+[`-import` attribute](http://www.erlang.org/doc/reference_manual/modules.html).
+However, this always uses the same function name locally as remotely
+which can either lead to misleading function names or even
+collisions. Consider, for example, wishing to import `length`
+functions from two remote modules. Aliasing of the functions is one
+solution to this.
+
+For example:
+
+    -import_as({lists, [{duplicate/2, dup}]}).
+    
+    test() ->
+        [a, a, a, a] = dup(4, a).
+
+As with `-import`, the left of the tuple is the module name, but the
+right of the tuple is a list of pairs, with the left being the
+function to import from the module (including arity) and the right
+being the local name by which the function is to be known--the
+*alias*. The implementation creates a local function, so the alias is
+safe to use in, for example, `Var = fun dup/2` expressions.
 
 
 
