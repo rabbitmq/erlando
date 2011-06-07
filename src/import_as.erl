@@ -32,13 +32,14 @@ import_as({attribute, Line, import_as, List}, {Funs, Acc})
   when is_list(List) ->
     Funs1 =
         lists:foldl(
-          fun ({Module, Aliases}, Acc1) ->
-                  [alias_fun(Module, Line, Alias) || Alias <- Aliases] ++ Acc1
+          fun ({Module, Aliases}, Acc1) when is_list(Aliases) ->
+                  [alias_fun(Module, Line, Alias) || Alias <- Aliases] ++ Acc1;
+              (WrongThing, Acc1) ->
+                  [general_error_fun(Line, WrongThing) | Acc1]
           end, Funs, List),
     {Funs1, Acc};
-import_as({attribute, Line, import_as, Wrong}, {Funs, Acc}) ->
-    erlang:error({Line, ?MODULE,
-                  ["Expected a list of pairs or pair, not: ", Wrong]});
+import_as({attribute, Line, import_as, WrongThing}, {Funs, Acc}) ->
+    {Funs, [general_error(Line, WrongThing) | Acc]};
 import_as({eof, Line}, {Funs, Acc}) ->
     {Acc1, Line1} =
         lists:foldl(
@@ -60,10 +61,17 @@ alias_fun(Module, _AttLine, {{Dest, Arity}, Alias}) when is_atom(Module) andalso
                     Vars},
             {function, Line, Alias, Arity, [{clause, Line, Vars, [], [Body]}]}
     end;
-alias_fun(Module, AttLine, WrongThing) ->
+alias_fun(_Module, AttLine, WrongThing) ->
     fun (_Line) ->
-            Str = lists:flatten(io_lib:format("~p", [WrongThing])),
-            erlang:error(
-              {AttLine, ?MODULE,
-               ["Expected a pair of {target_fun/arity, alias}, not: ", Str]})
+            Str = io_lib:format("~p", [WrongThing]),
+            {error, {AttLine, erl_parse,
+                     ["-import_as: Expected a pair of "
+                      "{target_fun/arity, alias}, not: ", Str]}}
     end.
+
+general_error_fun(AttLine, WrongThing) ->
+    fun (_Line) -> general_error(AttLine, WrongThing) end.
+
+general_error(AttLine, WrongThing) ->
+    Str = io_lib:format("~p", [WrongThing]),
+    {error, {AttLine, erl_parse, ["-import_as: invalid attribute value: ", Str]}}.
