@@ -21,4 +21,5 @@
 
 all_test_() ->
     [ fun test_cut:test/0,
-      fun test_do:test/0 ].
+      fun test_do:test/0,
+      fun test_import_as:test/0 ].
