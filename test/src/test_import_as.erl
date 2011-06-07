@@ -17,16 +17,23 @@
 -module(test_import_as).
 
 -compile({parse_transform, import_as}).
+-compile({parse_transform, cut}).
 
--import_as([{lists, [{seq/2, ls}, {reverse/1, rev}]}]).
+-import_as({lists, [{seq/3, ls}]}).
+-import_as([{lists, [{seq/2, ls}, {sum/1, sum}]}, {lists, [{reverse/1, rev}]}]).
 
--compile(export_all).
+-export([test_import_as/0, test/0]).
 
 test_import_as() ->
-    L = rev(lists:seq(1,10)),
-    L = lists:reverse(ls(1,10)),
-    Fun = fun rev/1,
-    [b, a] = Fun([a, b]).
+    L = rev(lists:seq(1, 10)),
+    L = lists:reverse(ls(1, 10)),
+    L = rev(ls(1, 10)),
+    Fun1 = rev(_),
+    [c, b, a] = Fun1([a, b, c]),
+    Fun2 = fun rev/1,
+    [b, a] = Fun2([a, b]),
+    [1, 3, 5, 7, 9] = ls(1, 10, 2),
+    25 = sum(rev(ls(1, 10, 2))).
 
 test() ->
     test:test([{?MODULE, [test_import_as]}], [report, {name, ?MODULE}]).
