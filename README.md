@@ -20,7 +20,7 @@ consists of three syntax extensions, all of which take the form of
   the Haskell GHC libraries.
 
 * **Import As**: This adds support for importing remote functions to
-  the current module namespace *and* renaming them.
+  the current module namespace under an explicit local name.
 
 
 
@@ -44,9 +44,9 @@ path to `erlc` with a `-pa` or `-pz` argument. For example:
     erlc -Wall +debug_info -I ./include -pa ebin -o ebin  src/import_as.erl
     erlc -Wall +debug_info -I ./include -pa test/ebin -pa ./ebin -o test/ebin test/src/test.erl
 
-Note, if you're using QLC, you may find you need to be careful as to
-the order of the parse transforms: I've found that the
-`-compile({parse_transform, cut}).` must occur before the
+*Note*: If you're using QLC, you may find you need to be careful as to
+the placement of the parse transformer attributes. For example, I've found
+that `-compile({parse_transform, cut}).` must occur before
 `-include_lib("stdlib/include/qlc.hrl").`
 
 
@@ -545,19 +545,26 @@ can write:
 
           ]), undefined).
 
-We start by creating a State-transform over the Identity-monad.
+We began by creating a State-transform over the Identity-monad:
+
+    StateT = state_t:new(identity_m),
+    ...
 
 > This is the syntax for *instantiating* parameterized modules. `StateT` is a
 variable referencing a module instance which, in this case, is a monad.
 
-We set up two shorthands for running functions that either just
-modify the state, or modify the state *and* return a result. Whilst
-there's a bit of bookkeeping to do, we achieve our goal: there are no
-state variables now to renumber whenever we make a change: we use cut
-to leave holes in the functions where State should be fed in, and we
-obey the protocol that if functions return both a result and state, it
-should be in the form of a `{Result, State}` tuple. The
-State-transform does the rest.
+and we define two shorthands for running functions that either just
+modify the state, or modify the state *and* return a result:
+
+    SM = StateT:modify(_),
+    SMR = StateT:modify_and_return(_),
+    ...
+
+There's a bit of bookkeeping to do but we achieve our goal: there are no
+state variables now to renumber whenever we make a change. We used `cut`s
+to leave holes in the functions where State should be fed in; and we
+obeyed the protocol that if a function returns both a result and a state, it
+is in the form of a `{Result, State}` tuple. The State-transform does the rest.
 
 
 ### Beyond Monads
@@ -570,7 +577,7 @@ The associated functions `guard`, `msum` and `mfilter` are available
 in the `monad_plus` module.
 
 In many cases, a fairly mechanical translation from Haskell to Erlang
-is possible, so in many cases converting other monads or combinators should
+is possible, so converting other monads or combinators should mostly
 be straightforward. However, the lack of type classes in Erlang is limiting.
 
 
@@ -581,8 +588,9 @@ For cosmetic reasons, it is sometimes desirable to import a remote
 function into the current module's namespace. This eliminates the need
 to continuously prefix calls to that function with its module
 name. Erlang can already do this by using the
-[`-import` attribute](http://www.erlang.org/doc/reference_manual/modules.html). However,
-this cannot alias functions which can either lead to misleading
+[`-import` attribute](http://www.erlang.org/doc/reference_manual/modules.html).
+However, this always uses the same function name locally as remotely which can 
+either lead to misleading
 function names or even collisions. Consider, for example, wishing to
 import `length` functions from two remote modules. Aliasing of the
 functions is one solution to this.
@@ -596,10 +604,11 @@ For example:
 
 As with `-import`, the left of the tuple is the module name, but the
 right of the tuple is a list of pairs, with the left being the
-original function within the module to import, including arity, and
-the right is the local name you wish to use as an alias. The
-implementation creates a local function, thus this means that the
-alias is safe to use in, e.g. `Var = fun dup/2` expressions.
+function to import from the module (including arity) and
+the right being the local name by which the function is to be known--the
+*alias*. The
+implementation creates a local function, so the
+alias is safe to use in, for example, `Var = fun dup/2` expressions.
 
 
 
