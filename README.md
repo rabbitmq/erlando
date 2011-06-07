@@ -19,8 +19,9 @@ consists of three syntax extensions, all of which take the form of
   and the monads and libraries are near-mechanical translations from
   the Haskell GHC libraries.
 
-* **Import As**: This adds support for importing remote functions to the
-  current module namespace with explicit control of the local function names.
+* **Import As**: This adds support for importing remote functions to
+  the current module namespace with explicit control of the local
+  function names.
 
 
 
@@ -45,8 +46,8 @@ path to `erlc` with a `-pa` or `-pz` argument. For example:
     erlc -Wall +debug_info -I ./include -pa test/ebin -pa ./ebin -o test/ebin test/src/test.erl
 
 *Note*: If you're using QLC, you may find you need to be careful as to
-the placement of the parse-transformer attributes. For example, I've found
-that `-compile({parse_transform, cut}).` must occur before
+the placement of the parse-transformer attributes. For example, I've
+found that `-compile({parse_transform, cut}).` must occur before
 `-include_lib("stdlib/include/qlc.hrl").`
 
 
@@ -577,7 +578,8 @@ in the `monad_plus` module.
 
 In many cases, a fairly mechanical translation from Haskell to Erlang
 is possible, so converting other monads or combinators should mostly
-be straightforward. However, the lack of type classes in Erlang is limiting.
+be straightforward. However, the lack of type classes in Erlang is
+limiting.
 
 
 
@@ -588,11 +590,11 @@ function into the current module's namespace. This eliminates the need
 to continuously prefix calls to that function with its module
 name. Erlang can already do this by using the
 [`-import` attribute](http://www.erlang.org/doc/reference_manual/modules.html).
-However, this always uses the same function name locally as remotely which can 
-either lead to misleading
-function names or even collisions. Consider, for example, wishing to
-import `length` functions from two remote modules. Aliasing of the
-functions is one solution to this.
+However, this always uses the same function name locally as remotely
+which can either lead to misleading function names or even
+collisions. Consider, for example, wishing to import `length`
+functions from two remote modules. Aliasing of the functions is one
+solution to this.
 
 For example:
 
@@ -603,11 +605,10 @@ For example:
 
 As with `-import`, the left of the tuple is the module name, but the
 right of the tuple is a list of pairs, with the left being the
-function to import from the module (including arity) and
-the right being the local name by which the function is to be known--the
-*alias*. The
-implementation creates a local function, so the
-alias is safe to use in, for example, `Var = fun dup/2` expressions.
+function to import from the module (including arity) and the right
+being the local name by which the function is to be known--the
+*alias*. The implementation creates a local function, so the alias is
+safe to use in, for example, `Var = fun dup/2` expressions.
 
 
 
