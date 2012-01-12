@@ -39,8 +39,10 @@ join(Monad, X) ->
                  Y]).
 
 sequence(Monad, Xs) ->
-    lists:foldr(fun (X, Acc) ->
-                        do([Monad || E <- X,
-                                     Es <- Acc,
-                                     return([E|Es])])
-                end, Monad:return([]), Xs).
+    sequence(Monad, Xs, []).
+
+sequence(Monad, [], Acc) ->
+    do([Monad || return(lists:reverse(Acc))]);
+sequence(Monad, [X|Xs], Acc) ->
+    do([Monad || E <- X,
+                 sequence(Monad, Xs, [E|Acc])]).
