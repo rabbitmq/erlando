@@ -278,7 +278,8 @@ expressions should be evaluated:
 
     comma(foo(),
           fun (A) -> comma(bar(A, dog),
-                           fun (B) -> ok end)).
+                           fun (B) -> ok end)
+          end).
 
 Thus the function `comma/2` takes all results from the previous
 expression, and controls how and whether they are passed to the next
@@ -303,7 +304,8 @@ which is readable and straightforward, and this is transformed into:
 
     Monad:'>>='(foo(),
                 fun (A) -> Monad:'>>='(bar(A, dog),
-                                       fun (B) -> ok end)).
+                                       fun (B) -> ok end)
+                end).
 
 There is no intention that this latter form is any more readable than
 the `comma/2` form - it is not. However, it should be clear that the
