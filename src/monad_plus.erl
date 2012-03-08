@@ -11,38 +11,39 @@
 %% The Original Code is Erlando.
 %%
 %% The Initial Developer of the Original Code is VMware, Inc.
-%% Copyright (c) 2011-2012 VMware, Inc.  All rights reserved.
+%% Copyright (c) 2011-2011 VMware, Inc.  All rights reserved.
 %%
 
--module(monad).
+-module(monad_plus).
 
 -export([behaviour_info/1]).
--export([join/2, sequence/2]).
+-export([guard/2, msum/2, mfilter/3]).
 
 -ifdef(use_specs).
 -type(monad(_A) :: any()). %% urm, don't know what to do here.
--spec(join/2 :: (atom(), monad(monad(A))) -> monad(A)).
--spec(sequence/2 :: (atom(), [monad(A)]) -> monad([A])).
+-spec(guard/2 :: (atom(), boolean()) -> monad(_A)).
+-spec(msum/2 :: (atom(), [monad(A)]) -> monad(A)).
+-spec(mfilter/3 :: (atom(), fun ((A) -> boolean()), monad(A)) -> monad(A)).
 -endif.
 
 -compile({parse_transform, do}).
+-compile({parse_transform, cut}).
 
 behaviour_info(callbacks) ->
-    [{'>>=',  2},
-     {return, 1},
-     {fail,   1}];
+    [{mzero, 0},
+     {mplus, 2}];
 behaviour_info(_Other) ->
     undefined.
 
-join(Monad, X) ->
-    do([Monad || Y <- X,
-                 Y]).
+guard(Monad, true)  -> Monad:return(ok);
+guard(Monad, false) -> Monad:fail("").
 
-sequence(Monad, Xs) ->
-    sequence(Monad, Xs, []).
+msum(Monad, List) ->
+    lists:foldr(Monad:mplus(_, _), Monad:mzero(), List).
 
-sequence(Monad, [], Acc) ->
-    do([Monad || return(lists:reverse(Acc))]);
-sequence(Monad, [X|Xs], Acc) ->
-    do([Monad || E <- X,
-                 sequence(Monad, Xs, [E|Acc])]).
+mfilter(Monad, Pred, X) ->
+    do([Monad || A <- X,
+                 case Pred(A) of
+                     true  -> return(A);
+                     false -> Monad:mzero()
+                 end]).

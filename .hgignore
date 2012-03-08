@@ -1,4 +1,9 @@
-syntax: glob
-*.beam
-*~
-deps.mk
+\.beam$
+~$
+^build/
+^dist/
+^cover/
+^\.eunit/
+^erl_crash.dump$
+^c_src/libhstcp.so$
+^ebin/erlando\.app$
