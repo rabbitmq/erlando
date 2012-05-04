@@ -22,19 +22,19 @@
 test_sequence() ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
-    {just, List} = monad:sequence(maybe_m, ListM).
+    {ok, List} = monad:sequence(maybe_m, ListM).
 
 test_join() ->
-    {just, 5} = monad:join(maybe_m,
+    {ok, 5} = monad:join(maybe_m,
                            maybe_m:return(maybe_m:return(5))),
-    {just, 5} = monad:join(maybe_m,
+    {ok, 5} = monad:join(maybe_m,
                            do([maybe_m || return(maybe_m:return(5))])),
-    {just, 5} = monad:join(maybe_m,
+    {ok, 5} = monad:join(maybe_m,
                            do([maybe_m || return(do([maybe_m || return(5)]))])).
 
 test_maybe() ->
-    nothing = maybe(atom),
-    {just, 9} = maybe(3).
+    undefined = maybe(atom),
+    {ok, 9} = maybe(3).
 
 maybe(Arg) ->
     do([maybe_m

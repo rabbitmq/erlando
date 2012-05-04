@@ -23,17 +23,17 @@
 -export([mzero/0, mplus/2]).
 
 -ifdef(use_specs).
--type(monad(A) :: {'just', A} | nothing).
+-type(monad(A) :: {ok, A} | undefined).
 -include("monad_specs.hrl").
 -include("monad_plus_specs.hrl").
 -endif.
 
-'>>='({just, X}, Fun) -> Fun(X);
-'>>='(nothing,  _Fun) -> nothing.
+'>>='({ok, X}, Fun) -> Fun(X);
+'>>='(undefined,  _Fun) -> undefined.
 
-return(X) -> {just, X}.
-fail(_X)  -> nothing.
+return(X) -> {ok, X}.
+fail(_X)  -> undefined.
 
-mzero() -> nothing.
-mplus(nothing, Y) -> Y;
+mzero() -> undefined.
+mplus(undefined, Y) -> Y;
 mplus(X,      _Y) -> X.
