@@ -37,3 +37,12 @@ fail(_X)  -> undefined.
 mzero() -> undefined.
 mplus(undefined, Y) -> Y;
 mplus(X,      _Y) -> X.
+
+-spec keyflatten/2 :: (pos_integer(), [tuple()]) -> [tuple()].
+keyflatten(N, List) ->
+	Filtered = lists:filter(fun(X) -> element(N, X) /= undefined end, List),
+	lists:map(fun(X) -> 
+		{L1, [{ok, V} | L2]} = lists:split(N - 1, tuple_to_list(X)),
+		list_to_tuple([L1, [V | L2]])
+	end).
+

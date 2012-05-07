@@ -41,6 +41,10 @@ maybe(Arg) ->
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
 
+test_keyflatten() -> 
+	[{a, 1}, {b, 2}] = maybe_m:keyflatten(2, 
+		[{a, {ok, 1}}, {b, {ok, 2}}, {c, undefined}]).
+
 test_fib() ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
                      [{fib_m(N), fib_rec(N)} || N <- lists:seq(0, 20)]).
@@ -115,6 +119,7 @@ test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
                           test_maybe,
+			  test_keyflatten,
                           test_fib,
                           test_list,
                           test_omega,
