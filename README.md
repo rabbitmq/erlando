@@ -385,13 +385,13 @@ combinators? One possibility results in the Maybe-monad:
     -behaviour(monad).
     -export(['>>='/2, return/1, fail/1]).
     
-    '>>='({just, X}, Fun) -> Fun(X);
-    '>>='(nothing,  _Fun) -> nothing.
+    '>>='({ok, X}, Fun) -> Fun(X);
+    '>>='(undefined,  _Fun) -> undefined.
     
-    return(X) -> {just, X}.
-    fail(_X)  -> nothing.
+    return(X) -> {ok, X}.
+    fail(_X)  -> undefined.
 
-Thus if the result of the preceding expression is `nothing`, the
+Thus if the result of the preceding expression is `undefined`, the
 subsequent expressions are *not* evaluated. This means that we can write
 very neat looking code which immediately stops should any failure be
 encountered.
@@ -405,12 +405,12 @@ encountered.
             return(Fun(Result))]).
 
 If `Y` is equal to 0, then `Fun` will not be invoked, and the result
-of the `if_safe_div_zero` function call will be `nothing`. If `Y` is
+of the `if_safe_div_zero` function call will be `undefined`. If `Y` is
 not equal to 0, then the result of the `if_safe_div_zero` function
-call will be `{just, Fun(X / Y)}`.
+call will be `{ok, Fun(X / Y)}`.
 
-We see here that within the *do*-block, there is no mention of `nothing`
-or `just`: they are abstracted away by the Maybe-monad. As a result,
+We see here that within the *do*-block, there is no mention of `undefined`
+or `ok`: they are abstracted away by the Maybe-monad. As a result,
 it is possible to change the monad in use, without having to rewrite
 any further code.
 

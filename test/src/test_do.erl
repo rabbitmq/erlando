@@ -22,24 +22,28 @@
 test_sequence() ->
     List = lists:seq(1,5),
     ListM = [do([maybe_m || return(N)]) || N <- List],
-    {just, List} = monad:sequence(maybe_m, ListM).
+    {ok, List} = monad:sequence(maybe_m, ListM).
 
 test_join() ->
-    {just, 5} = monad:join(maybe_m,
+    {ok, 5} = monad:join(maybe_m,
                            maybe_m:return(maybe_m:return(5))),
-    {just, 5} = monad:join(maybe_m,
+    {ok, 5} = monad:join(maybe_m,
                            do([maybe_m || return(maybe_m:return(5))])),
-    {just, 5} = monad:join(maybe_m,
+    {ok, 5} = monad:join(maybe_m,
                            do([maybe_m || return(do([maybe_m || return(5)]))])).
 
 test_maybe() ->
-    nothing = maybe(atom),
-    {just, 9} = maybe(3).
+    undefined = maybe(atom),
+    {ok, 9} = maybe(3).
 
 maybe(Arg) ->
     do([maybe_m
         || monad_plus:guard(maybe_m, is_number(Arg)),
            return(Arg*Arg)]).
+
+test_keyflatten() -> 
+	[{a, 1}, {b, 2}] = maybe_m:keyflatten(2, 
+		[{a, {ok, 1}}, {b, {ok, 2}}, {c, undefined}]).
 
 test_fib() ->
     true = lists:all(fun ({X, Y}) -> X =:= Y end,
@@ -115,6 +119,7 @@ test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
                           test_maybe,
+			  test_keyflatten,
                           test_fib,
                           test_list,
                           test_omega,
