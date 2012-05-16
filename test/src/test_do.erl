@@ -111,6 +111,56 @@ test_error_t_list() ->
                       end]),
     S = [{1, 4}, {1, 6}, {2, 4}, {2, 5}, {2, 6}, {3, 4}, {3, 6}].
 
+%%
+%% Tests for 'let-match binding' (a-la 'let' in Haskell's 'do' expression)
+%% But instead of 'let' here we use 'match' (=) expression in 'do([])':
+%%
+test_let_match() ->
+    T1 = do([maybe_m || R <- return(2),
+			R2 = R*R,
+			return(R2*R2)]),
+    T1 = do([maybe_m || R <- return(2),
+			return(R*R*R*R)]),
+    %% Failure test
+    T2 = do([error_m || A <- return(42),
+			 {B,C} <- fail(test),
+			 BC = B*C,
+			 return(BC+A)]),
+    T2 = do([error_m || A <- return(42),
+			 {B,C} <- fail(test),
+			 return(B*C+A)]),
+
+    Fun = fun({X,Y}) -> {Y,X} end, %% Misterious function
+    T3 = do([error_m || R <- return({1,42}),
+			{R1,R2} = Fun(R),
+			return(R1+R2)]),
+    T3 = do([error_m || R <- return({1,42}),
+			%% No better way without 'let'?
+			%% Well, only via extra 'return'
+			return(element(1,Fun(R)) + element(2,Fun(R)))]),
+    
+    DivRem = fun(N,M) -> {N div M,N rem M} end,
+    T4 = do([error_m || {N,M} <- return({42,3}),
+			{D,R} = DivRem(N,M),
+			E <- T3,
+			S = D+R+E,
+			return({D,R,S})]),
+    T4 = do([error_m || {N,M} <- return({42,3}),
+			%% Can hack it with extra 'return' (and '>>=' as result)
+			{D,R} <- return(DivRem(N,M)),
+			E <- T3,
+			return({D,R,D+R+E})]),
+
+    T5 = do([list_m || X <- [1,2,3],
+		       X2 = X*X,
+		       Y <- lists:seq(1,X2),
+		       Y2 = {Y,X2},
+		       Z = Y + X2,
+		       return({X2,Y,Y2,Z})]),
+    T5 = do([list_m || X <- [1,2,3],
+		       Y <- lists:seq(1,X*X),
+		       return({X*X,Y,{Y,X*X},Y+X*X})]).
+
 test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
@@ -118,5 +168,7 @@ test() ->
                           test_fib,
                           test_list,
                           test_omega,
-                          test_error_t_list]}],
+                          test_error_t_list,
+			  test_let_match]}],
               [report, {name, ?MODULE}]).
+

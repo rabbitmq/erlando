@@ -380,7 +380,7 @@ do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr}|Exprs],
       [expr(Expr, MonadStack),
        {'fun', Line,
         {clauses,
-         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}]}}]};
+         [{clause, Line, [Pattern], [], to_list(do_syntax(Exprs, MonadStack))}]}}]};
 do_syntax([{generate, Line, Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
     %% "Pattern <- Expr, Tail" where Pattern is not a simple variable
@@ -391,12 +391,16 @@ do_syntax([{generate, Line, Pattern, Expr}|Exprs],
       [expr(Expr, MonadStack),
        {'fun', Line,
         {clauses,
-         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]},
+         [{clause, Line, [Pattern], [], to_list(do_syntax(Exprs, MonadStack))},
           {clause, Line, [{var, Line, '_'}], [],
            [{call, Line, {remote, Line, Monad, {atom, Line, 'fail'}},
            [{atom, Line, 'monad_badmatch'}]}]}]}}]};
 do_syntax([Expr], MonadStack) ->
     expr(Expr, MonadStack); %% Don't do '>>' chaining on the last elem
+do_syntax([{match, _Line, _Pattern, _Expr} = Expr | Exprs],
+	  MonadStack) ->
+    %% Handles 'let binding' in do expression a-la Haskell
+    [expr(Expr, MonadStack)|to_list(do_syntax(Exprs, MonadStack))];
 do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
     %% "Expr, Tail" is transformed to "Monad:'>>='(Expr, fun (_) -> Tail')"
     %% Line is always the 2nd element of Expr
@@ -406,4 +410,9 @@ do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
         {'fun', Line,
           {clauses,
             [{clause, Line,
-              [{var, Line, '_'}], [], [do_syntax(Exprs, MonadStack)]}]}}]}.
+              [{var, Line, '_'}], [], to_list(do_syntax(Exprs, MonadStack))}]}}]}.
+
+to_list(Exprs) when is_list(Exprs) ->
+    Exprs;
+to_list(Expr) ->
+    [Expr].
