@@ -397,10 +397,10 @@ do_syntax([{generate, Line, Pattern, Expr}|Exprs],
            [{atom, Line, 'monad_badmatch'}]}]}]}}]};
 do_syntax([Expr], MonadStack) ->
     expr(Expr, MonadStack); %% Don't do '>>' chaining on the last elem
-do_syntax([{match, _Line, _Pattern, _Expr} = Expr | Exprs],
+do_syntax([{match, Line, _Pattern, _Expr} = Expr | Exprs],
 	  MonadStack) ->
     %% Handles 'let binding' in do expression a-la Haskell
-    [expr(Expr, MonadStack)|to_list(do_syntax(Exprs, MonadStack))];
+    {block, Line, [expr(Expr, MonadStack)|to_list(do_syntax(Exprs, MonadStack))]};
 do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
     %% "Expr, Tail" is transformed to "Monad:'>>='(Expr, fun (_) -> Tail')"
     %% Line is always the 2nd element of Expr

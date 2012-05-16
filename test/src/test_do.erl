@@ -159,7 +159,20 @@ test_let_match() ->
 		       return({X2,Y,Y2,Z})]),
     T5 = do([list_m || X <- [1,2,3],
 		       Y <- lists:seq(1,X*X),
-		       return({X*X,Y,{Y,X*X},Y+X*X})]).
+		       return({X*X,Y,{Y,X*X},Y+X*X})]),
+    
+    T6 = do([list_m || A = 3,
+		       X <- [1,2,A],
+		       Y <- [A,A+1],
+		       return({X,Y})]),
+
+    T6 = begin
+	     A = 3,
+	     do([list_m || X <- [1,2,A],
+			   Y <- [A,A+1],
+			   return({X,Y})])
+	 end.
+    
 
 test() ->
     test:test([{?MODULE, [test_sequence,
