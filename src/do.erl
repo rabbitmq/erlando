@@ -257,7 +257,7 @@ expr({call, Line, {atom, _Line1, do},
      MonadStack) when AtomOrVar =:= atom orelse AtomOrVar =:= var ->
     %% 'do' calls of a particular form:
     %%  do([ MonadMod || Qualifiers ])
-    ensure_tuple(do_syntax(Qs, [Monad|MonadStack]), Line);
+    ensure_scope(do_syntax(Qs, [Monad|MonadStack]), Line);
 %%  'return' and 'fail' syntax detection and transformation:
 expr({call, Line, {atom, Line1, ReturnOrFail}, As0},
      [Monad|_Monads] = MonadStack) when ReturnOrFail =:= return orelse
@@ -417,10 +417,10 @@ ensure_list(Exprs) when is_list(Exprs) ->
 ensure_list(Expr) ->
     [Expr].
 
-ensure_tuple(Expr, _Line) when is_tuple(Expr) ->
+ensure_scope(Expr, _Line) when is_tuple(Expr) ->
     Expr;
-ensure_tuple(Exprs, Line) when is_list(Exprs) ->
-    {block, Line, Exprs};
-ensure_tuple(_Exprs, Line) ->
-    erlang:error({"Invalid expression in 'do' block", Line}).
-
+ensure_scope(Exprs, Line) when is_list(Exprs) ->
+    {call, Line,
+     {'fun', Line,
+       {clauses,
+        [{clause, Line, [], [], Exprs}]}}, []}.

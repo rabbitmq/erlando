@@ -159,19 +159,30 @@ test_let_match() ->
 		       return({X2,Y,Y2,Z})]),
     T5 = do([list_m || X <- [1,2,3],
 		       Y <- lists:seq(1,X*X),
-		       return({X*X,Y,{Y,X*X},Y+X*X})]),
-    
-    T6 = do([list_m || A = 3,
-		       X <- [1,2,A],
-		       Y <- [A,A+1],
-		       return({X,Y})]),
+		       return({X*X,Y,{Y,X*X},Y+X*X})]).
 
-    T6 = begin
-	     A = 3,
-	     do([list_m || X <- [1,2,A],
-			   Y <- [A,A+1],
-			   return({X,Y})])
-	 end.
+test_let_first() ->
+    M = do([list_m || A = 3,
+		      X <- [1,2,A],
+		      Y <- [A,A+1],
+		      return({X,Y})]),
+    M = fun() ->
+		A = 3,
+		do([list_m || X <- [1,2,A],
+			      Y <- [A,A+1],
+			      return({X,Y})])
+	end().
+
+test_let_escapes() ->
+    M1 = do([maybe_m || A = 5,
+			return(A)]),
+    M2 = do([maybe_m || A = 6,
+			return(A)]),
+    
+    M1 = do([maybe_m || return(5)]),
+    M2 = do([maybe_m || return(6)]).
+
+    
     
 
 test() ->
@@ -182,6 +193,9 @@ test() ->
                           test_list,
                           test_omega,
                           test_error_t_list,
-			  test_let_match]}],
+
+			  test_let_match,
+			  test_let_first,
+			  test_let_escapes]}],
               [report, {name, ?MODULE}]).
 
