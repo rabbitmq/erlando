@@ -368,7 +368,8 @@ fun_clauses([], _MonadStack) -> [].
 %%  'do' syntax transformation:
 do_syntax([], [{_AtomOrVar, MLine, _MonadModule}|_MonadStack]) ->
     erlang:error({"A 'do' construct cannot be empty", MLine});
-do_syntax([{generate, Line, _Pattern, _Expr}], _MonadStack) ->
+do_syntax([{GenerateOrMatch, Line, _Pattern, _Expr}], _MonadStack)
+  when GenerateOrMatch =:= generate orelse GenerateOrMatch =:= match ->
     erlang:error({"The last statement in a 'do' construct must be an expression", Line});
 do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
