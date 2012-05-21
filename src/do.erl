@@ -23,7 +23,7 @@
 
 -module(do).
 
--export([parse_transform/2]).
+-export([parse_transform/2, format_error/1]).
 
 parse_transform(Forms, _Options) ->
     Forms1 = forms(Forms),
@@ -33,7 +33,10 @@ parse_transform(Forms, _Options) ->
 %% forms(Fs) -> lists:map(fun (F) -> form(F) end, Fs).
 
 forms([F0|Fs0]) ->
-    F1 = form(F0),
+    F1 = try form(F0)
+         catch throw:{Error, Line} ->
+                 {error, {Line, ?MODULE, Error}}
+         end,
     Fs1 = forms(Fs0),
     [F1|Fs1];
 forms([]) -> [].
@@ -370,10 +373,10 @@ fun_clauses([], _MonadStack) -> [].
 
 %%  'do' syntax transformation:
 do_syntax([], [{_AtomOrVar, MLine, _MonadModule} | _MonadStack]) ->
-    erlang:error({"A 'do' construct cannot be empty", MLine});
+    transform_error("A 'do' construct cannot be empty", MLine);
 do_syntax([{GenerateOrMatch, Line, _Pattern, _Expr}], _MonadStack)
   when GenerateOrMatch =:= generate orelse GenerateOrMatch =:= match ->
-    erlang:error({"The last statement in a 'do' construct must be an expression", Line});
+    transform_error("The last statement in a 'do' construct must be an expression", Line);
 do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr} | Exprs],
           [Monad | _Monads] = MonadStack) ->
     %% "Pattern <- Expr, Tail" where Pattern is a simple variable
@@ -415,3 +418,17 @@ do_syntax([Expr | Exprs], [Monad | _Monads] = MonadStack) ->
         {clauses,
          [{clause, Line,
            [{var, Line, '_'}], [], do_syntax(Exprs, MonadStack)}]}}]}].
+
+%% Use this function to report any parse_transform error. The
+%% resulting error message will be displayed as an ordinary
+%% compilation error in a standard format.
+transform_error(Message, Line) ->
+    throw({Message, Line}).
+
+%% This function is called by the Erlang compiler to obtain an error
+%% message which will be shown to the user.
+format_error(Message) ->
+    case io_lib:deep_char_list(Message) of
+        true -> Message;
+        _    -> io_lib:write(Message)
+    end.
