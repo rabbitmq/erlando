@@ -252,12 +252,12 @@ expr({'fun', Line, Body}, MonadStack) ->
             {'fun', Line, {function, M, F, A}}
     end;
 %%  do syntax detection:
-expr({call, _Line, {atom, _Line1, do},
+expr({call, Line, {atom, _Line1, do},
       [{lc, _Line2, {AtomOrVar, _Line3, _MonadModule} = Monad, Qs}]},
      MonadStack) when AtomOrVar =:= atom orelse AtomOrVar =:= var ->
     %% 'do' calls of a particular form:
     %%  do([ MonadMod || Qualifiers ])
-    do_syntax(Qs, [Monad|MonadStack]);
+    ensure_scope(do_syntax(Qs, [Monad|MonadStack]), Line);
 %%  'return' and 'fail' syntax detection and transformation:
 expr({call, Line, {atom, Line1, ReturnOrFail}, As0},
      [Monad|_Monads] = MonadStack) when ReturnOrFail =:= return orelse
@@ -368,7 +368,8 @@ fun_clauses([], _MonadStack) -> [].
 %%  'do' syntax transformation:
 do_syntax([], [{_AtomOrVar, MLine, _MonadModule}|_MonadStack]) ->
     erlang:error({"A 'do' construct cannot be empty", MLine});
-do_syntax([{generate, Line, _Pattern, _Expr}], _MonadStack) ->
+do_syntax([{GenerateOrMatch, Line, _Pattern, _Expr}], _MonadStack)
+  when GenerateOrMatch =:= generate orelse GenerateOrMatch =:= match ->
     erlang:error({"The last statement in a 'do' construct must be an expression", Line});
 do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
@@ -380,7 +381,7 @@ do_syntax([{generate, Line, {var, _Line, _Var} = Pattern, Expr}|Exprs],
       [expr(Expr, MonadStack),
        {'fun', Line,
         {clauses,
-         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]}]}}]};
+         [{clause, Line, [Pattern], [], ensure_list(do_syntax(Exprs, MonadStack))}]}}]};
 do_syntax([{generate, Line, Pattern, Expr}|Exprs],
           [Monad|_Monads] = MonadStack) ->
     %% "Pattern <- Expr, Tail" where Pattern is not a simple variable
@@ -391,12 +392,16 @@ do_syntax([{generate, Line, Pattern, Expr}|Exprs],
       [expr(Expr, MonadStack),
        {'fun', Line,
         {clauses,
-         [{clause, Line, [Pattern], [], [do_syntax(Exprs, MonadStack)]},
+         [{clause, Line, [Pattern], [], ensure_list(do_syntax(Exprs, MonadStack))},
           {clause, Line, [{var, Line, '_'}], [],
            [{call, Line, {remote, Line, Monad, {atom, Line, 'fail'}},
            [{atom, Line, 'monad_badmatch'}]}]}]}}]};
 do_syntax([Expr], MonadStack) ->
     expr(Expr, MonadStack); %% Don't do '>>' chaining on the last elem
+do_syntax([{match, _Line, _Pattern, _Expr} = Expr | Exprs],
+	  MonadStack) ->
+    %% Handles 'let binding' in do expression a-la Haskell
+    [expr(Expr, MonadStack)|ensure_list(do_syntax(Exprs, MonadStack))];
 do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
     %% "Expr, Tail" is transformed to "Monad:'>>='(Expr, fun (_) -> Tail')"
     %% Line is always the 2nd element of Expr
@@ -406,4 +411,17 @@ do_syntax([Expr|Exprs], [Monad|_Monads] = MonadStack) ->
         {'fun', Line,
           {clauses,
             [{clause, Line,
-              [{var, Line, '_'}], [], [do_syntax(Exprs, MonadStack)]}]}}]}.
+              [{var, Line, '_'}], [], ensure_list(do_syntax(Exprs, MonadStack))}]}}]}.
+
+ensure_list(Exprs) when is_list(Exprs) ->
+    Exprs;
+ensure_list(Expr) ->
+    [Expr].
+
+ensure_scope(Expr, _Line) when is_tuple(Expr) ->
+    Expr;
+ensure_scope(Exprs, Line) when is_list(Exprs) ->
+    {call, Line,
+     {'fun', Line,
+       {clauses,
+        [{clause, Line, [], [], Exprs}]}}, []}.
