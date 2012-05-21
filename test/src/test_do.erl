@@ -111,79 +111,75 @@ test_error_t_list() ->
                       end]),
     S = [{1, 4}, {1, 6}, {2, 4}, {2, 5}, {2, 6}, {3, 4}, {3, 6}].
 
-%%
-%% Tests for 'let-match binding' (a-la 'let' in Haskell's 'do' expression)
-%% But instead of 'let' here we use 'match' (=) expression in 'do([])':
-%%
+%% Tests for 'let-match binding' (a-la 'let' in Haskell's 'do'
+%% expression) But instead of 'let' here we use 'match' (=) expression
+%% in 'do([])':
 test_let_match() ->
     T1 = do([maybe_m || R <- return(2),
-			R2 = R*R,
-			return(R2*R2)]),
+                        R2 = R*R,
+                        return(R2*R2)]),
     T1 = do([maybe_m || R <- return(2),
-			return(R*R*R*R)]),
+                        return(R*R*R*R)]),
     %% Failure test
     T2 = do([error_m || A <- return(42),
-			 {B,C} <- fail(test),
-			 BC = B*C,
-			 return(BC+A)]),
+                        {B,C} <- fail(test),
+                        BC = B*C,
+                        return(BC+A)]),
     T2 = do([error_m || A <- return(42),
-			 {B,C} <- fail(test),
-			 return(B*C+A)]),
+                        {B,C} <- fail(test),
+                        return(B*C+A)]),
 
-    Fun = fun({X,Y}) -> {Y,X} end, %% Misterious function
+    Fun = fun({X,Y}) -> {Y,X} end, %% Mysterious function
     T3 = do([error_m || R <- return({1,42}),
-			{R1,R2} = Fun(R),
-			return(R1+R2)]),
+                        {R1,R2} = Fun(R),
+                        return(R1+R2)]),
     T3 = do([error_m || R <- return({1,42}),
-			%% No better way without 'let'?
-			%% Well, only via extra 'return'
-			return(element(1,Fun(R)) + element(2,Fun(R)))]),
-    
+                        %% No better way without 'let'?
+                        %% Well, only via extra 'return'
+                        return(element(1,Fun(R)) + element(2,Fun(R)))]),
+
     DivRem = fun(N,M) -> {N div M,N rem M} end,
     T4 = do([error_m || {N,M} <- return({42,3}),
-			{D,R} = DivRem(N,M),
-			E <- T3,
-			S = D+R+E,
-			return({D,R,S})]),
+                        {D,R} = DivRem(N,M),
+                        E <- T3,
+                        S = D+R+E,
+                        return({D,R,S})]),
     T4 = do([error_m || {N,M} <- return({42,3}),
-			%% Can hack it with extra 'return' (and '>>=' as result)
-			{D,R} <- return(DivRem(N,M)),
-			E <- T3,
-			return({D,R,D+R+E})]),
+                        %% Can hack it with extra 'return' (and '>>='
+                        %% as result)
+                        {D,R} <- return(DivRem(N,M)),
+                        E <- T3,
+                        return({D,R,D+R+E})]),
 
     T5 = do([list_m || X <- [1,2,3],
-		       X2 = X*X,
-		       Y <- lists:seq(1,X2),
-		       Y2 = {Y,X2},
-		       Z = Y + X2,
-		       return({X2,Y,Y2,Z})]),
+                       X2 = X*X,
+                       Y <- lists:seq(1,X2),
+                       Y2 = {Y,X2},
+                       Z = Y + X2,
+                       return({X2,Y,Y2,Z})]),
     T5 = do([list_m || X <- [1,2,3],
-		       Y <- lists:seq(1,X*X),
-		       return({X*X,Y,{Y,X*X},Y+X*X})]).
+                       Y <- lists:seq(1,X*X),
+                       return({X*X,Y,{Y,X*X},Y+X*X})]).
 
 test_let_first() ->
     M = do([list_m || A = 3,
-		      X <- [1,2,A],
-		      Y <- [A,A+1],
-		      return({X,Y})]),
+                      X <- [1,2,A],
+                      Y <- [A,A+1],
+                      return({X,Y})]),
     M = fun() ->
-		A = 3,
-		do([list_m || X <- [1,2,A],
-			      Y <- [A,A+1],
-			      return({X,Y})])
-	end().
+                A = 3,
+                do([list_m || X <- [1,2,A],
+                              Y <- [A,A+1],
+                              return({X,Y})])
+        end().
 
 test_let_escapes() ->
     M1 = do([maybe_m || A = 5,
-			return(A)]),
+                        return(A)]),
     M2 = do([maybe_m || A = 6,
-			return(A)]),
-    
+                        return(A)]),
     M1 = do([maybe_m || return(5)]),
     M2 = do([maybe_m || return(6)]).
-
-    
-    
 
 test() ->
     test:test([{?MODULE, [test_sequence,
@@ -193,9 +189,7 @@ test() ->
                           test_list,
                           test_omega,
                           test_error_t_list,
-
-			  test_let_match,
-			  test_let_first,
-			  test_let_escapes]}],
+                          test_let_match,
+                          test_let_first,
+                          test_let_escapes]}],
               [report, {name, ?MODULE}]).
-
