@@ -179,7 +179,12 @@ test_let_escapes() ->
     M2 = do([maybe_m || A = 6,
                         return(A)]),
     M1 = do([maybe_m || return(5)]),
-    M2 = do([maybe_m || return(6)]).
+    M2 = do([maybe_m || return(6)]),
+
+    %% Demonstrate that bindings do not escape.
+    M3 = do([maybe_m || return(A = 5)]),
+    M3 = do([maybe_m || return((A = 7) - 2)]),
+    A = 6.
 
 test() ->
     test:test([{?MODULE, [test_sequence,
