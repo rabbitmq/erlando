@@ -11,7 +11,8 @@
 %% The Original Code is Erlando.
 %%
 %% The Initial Developer of the Original Code is VMware, Inc.
-%% Copyright (c) 2011-2012 VMware, Inc.  All rights reserved.
+%% Copyright (c) 2011-2012 VMware, Inc; Eduard Sergeev.
+%% All rights reserved.
 %%
 
 -module(test_do).
