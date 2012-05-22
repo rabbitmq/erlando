@@ -11,15 +11,20 @@
 %% The Original Code is Erlando.
 %%
 %% The Initial Developer of the Original Code is Alex Kropivny.
-%% Copyright (c) 2011-2012 Alex Kropivny; VMware, Inc.
+%% Copyright (c) 2011-2012 Alex Kropivny; VMware, Inc; Eduard Sergeev.
 %% All rights reserved.
 %%
 
 -module(erlando_test).
--compile(export_all).
-
+-export([all_test_/0]).
 
 all_test_() ->
-    [ fun test_cut:test/0,
-      fun test_do:test/0,
-      fun test_import_as:test/0 ].
+    Modules = [test_cut,
+               test_do,
+               test_import_as],
+    [{Mod,Fun} || Mod <- Modules,
+                  Fun <- extract_tests(Mod)].
+
+extract_tests(Mod) ->
+    [Fun || {Fun, 0} <- Mod:module_info(exports),
+            lists:prefix("test_", atom_to_list(Fun))].
