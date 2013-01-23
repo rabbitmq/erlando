@@ -11,7 +11,7 @@
 %% The Original Code is Erlando.
 %%
 %% The Initial Developer of the Original Code is VMware, Inc.
-%% Copyright (c) 2011-2012 VMware, Inc; Eduard Sergeev.
+%% Copyright (c) 2011-2013 VMware, Inc; Eduard Sergeev.
 %% All rights reserved.
 %%
 

@@ -2,7 +2,7 @@
 %% distribution, with modifications to make it implement Haskell-style
 %% 'do' syntax in Erlang.
 
-%% All modifications are (C) 2011-2012 VMware, Inc; Eduard Sergeev.
+%% All modifications are (C) 2011-2013 VMware, Inc; Eduard Sergeev.
 
 %%
 %% ``The contents of this file are subject to the Erlang Public License,
