@@ -3,7 +3,7 @@
 %% Notation for Specializing Parameters without Currying
 %% (http://srfi.schemers.org/srfi-26/srfi-26.html).
 
-%% All modifications are (C) 2011-2011 VMware, Inc.
+%% All modifications are (C) 2011-2013 VMware, Inc.
 
 %%
 %% ``The contents of this file are subject to the Erlang Public License,
