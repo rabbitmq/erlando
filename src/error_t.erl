@@ -13,10 +13,10 @@
 %% The Initial Developer of the Original Code is VMware, Inc.
 %% Copyright (c) 2011-2013 VMware, Inc.  All rights reserved.
 %%
-
+ 
 -module(error_t, [InnerMonad]).
 -compile({parse_transform, do}).
-
+-include("pmod.hrl").
 -behaviour(monad).
 -export(['>>='/2, return/1, fail/1, run/1, lift/1]).
 

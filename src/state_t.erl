@@ -16,7 +16,7 @@
 
 -module(state_t, [InnerMonad]).
 -compile({parse_transform, do}).
-
+-include("pmod.hrl").
 -behaviour(monad).
 -export(['>>='/2, return/1, fail/1]).
 -export([get/0, put/1, eval/2, exec/2, run/2,
@@ -24,6 +24,7 @@
 
 -ifdef(use_specs).
 -type(monad(A) :: fun ((S) -> {A, S})).
+
 -include("monad_specs.hrl").
 -endif.
 
