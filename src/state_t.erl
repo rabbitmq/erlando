@@ -16,6 +16,7 @@
 
 -module(state_t, [InnerMonad]).
 -compile({parse_transform, do}).
+-compile({parse_transform, pmod_pt}).
 
 -behaviour(monad).
 -export(['>>='/2, return/1, fail/1]).
