@@ -126,6 +126,14 @@ test_cut_comprehensions() ->
     [{3,4,5}, {4,3,5}, {6,8,10}, {8,6,10}] =
         lists:usort(F1(lists:seq(1,10), lists:seq(1,10), lists:seq(1,10))).
 
+test_cut_named_fun() ->
+    Add  = _ + _,
+    Fib  = fun Self (0) -> 1;
+               Self (1) -> 1;
+               Self (N) -> (Add(_, _))(N, Self(N-1))
+           end,
+    true = (Fib(_))(10) =:= 55.
+
 test() ->
     test:test([{?MODULE, [test_cut,
                           test_cut_nested,
@@ -137,5 +145,6 @@ test() ->
                           test_cut_binary,
                           test_cut_list,
                           test_cut_case,
-                          test_cut_comprehensions]}],
+                          test_cut_comprehensions,
+                          test_cut_named_fun]}],
               [report, {name, ?MODULE}]).

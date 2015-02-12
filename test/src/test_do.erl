@@ -187,6 +187,14 @@ test_let_escapes() ->
     M3 = do([maybe_m || return((_A = 7) - 2)]),
     _A = 6.
 
+test_named_fun() ->
+    Fib  = fun Self (0) -> identity_m:return(1);
+               Self (1) -> identity_m:return(1);
+               Self (N) -> do([identity_m || M <- Self(N-1),
+                                             return(N+M)])
+           end,
+    true = Fib(10) =:= 55.
+
 test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
@@ -197,5 +205,6 @@ test() ->
                           test_error_t_list,
                           test_let_match,
                           test_let_first,
-                          test_let_escapes]}],
+                          test_let_escapes,
+                          test_nemd_fun]}],
               [report, {name, ?MODULE}]).
