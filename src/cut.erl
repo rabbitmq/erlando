@@ -328,6 +328,10 @@ expr({'fun', Line, Body}) ->
         {function, M, F, A} -> %% R10B-6: fun M:F/A.
             {'fun', Line, {function, M, F, A}}
     end;
+%% OTP 17.0: EEP 37: Funs with names
+expr({named_fun, Line, Name, Cs0}) ->
+    Cs1 = fun_clauses(Cs0),
+    {named_fun, Line, Name, Cs1};
 expr({call, Line, F0, As0}) ->
     %% N.B. If F an atom then call to local function or BIF, if F a
     %% remote structure (see below) then call to other module,
