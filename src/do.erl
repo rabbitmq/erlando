@@ -254,6 +254,9 @@ expr({'fun', Line, Body}, MonadStack) ->
         {function, M, F, A} -> %% R10B-6: fun M:F/A.
             {'fun', Line, {function, M, F, A}}
     end;
+expr({named_fun, Line, Name, Cs0}, MonadStack) -> % OTP 17.0: EEP 37: Funs with names
+    Cs1 = fun_clauses(Cs0, MonadStack),
+    {named_fun, Line, Name, Cs1};
 %%  do syntax detection:
 expr({call, Line, {atom, _Line1, do},
       [{lc, _Line2, {AtomOrVar, _Line3, _MonadModule} = Monad, Qs}]},
