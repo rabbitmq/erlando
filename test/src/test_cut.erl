@@ -79,6 +79,27 @@ test_cut_record_nested() ->
     F1 = R#r.f1,
     #r{f1 = orange, f3 = banana} = F1(orange, banana).
 
+test_cut_map() ->
+    true = #{} =/= #{f3 => _},
+    orange = maps:get(f3, (#{f3 => _})(orange)),
+    #{f1 := foo, f2 := bar, f3 := baz}
+        = (#{f1 => _, f3 => _, f2 => _})(foo, baz, bar),
+    M = #{f1 => false, f2 => wibble, f3 => juice},
+    F = M#{f3 => _, f2 => _},
+    wobble = maps:get(f2, F(orange, wobble)),
+    Getter = maps:get(f2, _),
+    wibble = Getter(M),
+    Setter = _#{f2 := gerbil},
+    gerbil = Getter(Setter(M)),
+    Setter2 = _#{f2 := _},
+    hamster = Getter(Setter2(M, hamster)).
+
+test_cut_map_nested() ->
+    F = #{f1 => #{f1 => _, f3 => _}, f2 => _},
+    M = F(apple),
+    F1 = maps:get(f1, M),
+    #{f1 := orange, f3 := banana} = F1(orange, banana).
+
 test_cut_binary() ->
     <<"AbA", _/binary>> = (<<65, _, 65>>)($b),
     F = <<_:_>>,
@@ -126,16 +147,27 @@ test_cut_comprehensions() ->
     [{3,4,5}, {4,3,5}, {6,8,10}, {8,6,10}] =
         lists:usort(F1(lists:seq(1,10), lists:seq(1,10), lists:seq(1,10))).
 
+test_cut_named_fun() ->
+    Add  = _ + _,
+    Fib  = fun Self (0) -> 1;
+               Self (1) -> 1;
+               Self (N) -> (Add(_, _))(N, Self(N-1))
+           end,
+    true = (Fib(_))(10) =:= 55.
+
 test() ->
     test:test([{?MODULE, [test_cut,
                           test_cut_nested,
                           test_cut_op,
                           test_cut_unary_op,
                           test_cut_tuple,
+                          test_cut_map,
+                          test_cut_map_nested,
                           test_cut_record,
                           test_cut_record_nested,
                           test_cut_binary,
                           test_cut_list,
                           test_cut_case,
-                          test_cut_comprehensions]}],
+                          test_cut_comprehensions,
+                          test_cut_named_fun]}],
               [report, {name, ?MODULE}]).

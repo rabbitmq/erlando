@@ -195,12 +195,21 @@ you're just defining another list element.
 #### Records
 
     -record(vector, { x, y, z }).
-    
+
     test() ->
         GetZ = _#vector.z,
         7 = GetZ(#vector { z = 7 }),
         SetX = _#vector{x = _},
         V = #vector{ x = 5, y = 4 } = SetX(#vector{ y = 4 }, 5).
+
+
+#### Maps
+
+    test() ->
+        GetZ = maps:get(z, _),
+        7    = GetZ(#{ z => 7 }),
+        SetX = _#{x => _},
+        V    = #{ x := 5, y := 4 } = SetX(#{ y => 4 }, 5).
 
 
 #### Case

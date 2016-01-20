@@ -96,6 +96,10 @@ pattern({cons,Line,H0,T0}) ->
 pattern({tuple,Line,Ps0}) ->
     Ps1 = pattern_list(Ps0),
     {tuple,Line,Ps1};
+%% OTP 17.0: EEP 443: Map pattern
+pattern({map, Line, Fields0}) ->
+    Fields1 = map_fields(Fields0),
+    {map, Line, Fields1};
 %%pattern({struct,Line,Tag,Ps0}) ->
 %%    Ps1 = pattern_list(Ps0),
 %%    {struct,Line,Tag,Ps1};
@@ -234,6 +238,27 @@ expr({tuple, Line, Es0}) ->
             {'fun', Line, {clauses, [{clause, Line, Pattern, [],
                                       [{tuple, Line, Es2}]}]}}
     end;
+%% OTP 17.0: EEP 443: Map construction
+expr({map, Line, Fields0}) ->
+    Fields1 = map_fields(Fields0),
+    case find_map_cut_vars(Fields1) of
+        {[],     _Fields2} ->
+            {map, Line, Fields1};
+        {Pattern, Fields2} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern, [],
+                                      [{map, Line, Fields2}]}]}}
+    end;
+%% OTP 17.0: EEP 443: Map update
+expr({map, Line, Expr0, Fields0}) ->
+    Expr1   = expr(Expr0),
+    Fields1 = map_fields(Fields0),
+    case {find_cut_vars([Expr1]), find_map_cut_vars(Fields1)} of
+        {{[], _Expr2}, {[], _Fields2}} ->
+            {map, Line, Expr1, Fields1};
+        {{Pattern1, [Expr2]}, {Pattern2, Fields2}} ->
+            {'fun', Line, {clauses, [{clause, Line, Pattern1++Pattern2, [],
+                                      [{map, Line, Expr2, Fields2}]}]}}
+    end;
 %%expr({struct,Line,Tag,Es0}) ->
 %%    Es1 = pattern_list(Es0),
 %%    {struct,Line,Tag,Es1};
@@ -328,6 +353,10 @@ expr({'fun', Line, Body}) ->
         {function, M, F, A} -> %% R10B-6: fun M:F/A.
             {'fun', Line, {function, M, F, A}}
     end;
+%% OTP 17.0: EEP 37: Funs with names
+expr({named_fun, Line, Name, Cs0}) ->
+    Cs1 = fun_clauses(Cs0),
+    {named_fun, Line, Name, Cs1};
 expr({call, Line, F0, As0}) ->
     %% N.B. If F an atom then call to local function or BIF, if F a
     %% remote structure (see below) then call to other module,
@@ -404,6 +433,17 @@ expr_list([E0|Es]) ->
     [E1|expr_list(Es)];
 expr_list([]) -> [].
 
+%% -type map_fields([MapField]) -> [MapField].
+map_fields([{map_field_assoc, Line, ExpK0, ExpV0}|Fs]) ->
+    ExpK1 = expr(ExpK0),
+    ExpV1 = expr(ExpV0),
+    [{map_field_assoc, Line, ExpK1, ExpV1}|map_fields(Fs)];
+map_fields([{map_field_exact, Line, ExpK0, ExpV0}|Fs]) ->
+    ExpK1 = expr(ExpK0),
+    ExpV1 = expr(ExpV0),
+    [{map_field_exact, Line, ExpK1, ExpV1}|map_fields(Fs)];
+map_fields([]) -> [].
+
 %% -type record_inits([RecordInit]) -> [RecordInit].
 %%  N.B. Field names are full expressions here but only atoms are allowed
 %%  by the *linter*!.
@@ -477,6 +517,27 @@ find_binary_cut_vars(BinFields) ->
               {bin_element, Line, Var1, Size1, Type1}
       end,
       BinFields).
+
+find_map_cut_vars(MapFields) ->
+    cut_vars(
+      fun ({map_field_assoc, _Line, {var, _Line1, '_'} = ExpK, {var, _Line2, '_'} = ExpV}) -> [ExpK, ExpV];
+          ({map_field_assoc, _Line, {var, _Line1, '_'} = ExpK,                     _ExpV}) -> [ExpK];
+          ({map_field_assoc, _Line,                     _ExpK, {var, _Line1, '_'} = ExpV}) -> [ExpV];
+          ({map_field_assoc, _Line,                     _ExpK,                     _ExpV}) -> [];
+          ({map_field_exact, _Line, {var, _Line1, '_'} = ExpK, {var, _Line2, '_'} = ExpV}) -> [ExpK, ExpV];
+          ({map_field_exact, _Line, {var, _Line1, '_'} = ExpK,                     _ExpV}) -> [ExpK];
+          ({map_field_exact, _Line,                     _ExpK, {var, _Line1, '_'} = ExpV}) -> [ExpV];
+          ({map_field_exact, _Line,                     _ExpK,                     _ExpV}) -> [];
+          (_)                                                                              -> []
+      end,
+      fun ({map_field_assoc, Line, _ExpK             , _ExpV             }, [ExpK, ExpV]) -> {map_field_assoc, Line, ExpK, ExpV};
+          ({map_field_assoc, Line, {var, _Line1, '_'},  ExpV             }, [ExpK]      ) -> {map_field_assoc, Line, ExpK, ExpV};
+          ({map_field_assoc, Line, ExpK              , {var, _Line2, '_'}}, [ExpV]      ) -> {map_field_assoc, Line, ExpK, ExpV};
+          ({map_field_exact, Line, _ExpK             , _ExpV             }, [ExpK, ExpV]) -> {map_field_assoc, Line, ExpK, ExpV};
+          ({map_field_exact, Line, {var, _Line1, '_'},  ExpV             }, [ExpK]      ) -> {map_field_assoc, Line, ExpK, ExpV};
+          ({map_field_exact, Line, ExpK              , {var, _Line2, '_'}}, [ExpV]      ) -> {map_field_assoc, Line, ExpK, ExpV}
+      end,
+      MapFields).
 
 find_record_cut_vars(RecFields) ->
     cut_vars(

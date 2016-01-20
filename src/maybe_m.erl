@@ -16,24 +16,34 @@
 
 -module(maybe_m).
 
+-export_type([maybe/1]).
+
 -behaviour(monad).
 -export(['>>='/2, return/1, fail/1]).
 
 -behaviour(monad_plus).
 -export([mzero/0, mplus/2]).
 
--ifdef(use_specs).
--type(monad(A) :: {'just', A} | nothing).
--include("monad_specs.hrl").
--include("monad_plus_specs.hrl").
--endif.
+-type maybe(A) :: {just, A} | nothing.
 
+
+-spec '>>='(maybe(A), fun( (A) -> maybe(B) )) -> maybe(B).
 '>>='({just, X}, Fun) -> Fun(X);
 '>>='(nothing,  _Fun) -> nothing.
 
-return(X) -> {just, X}.
-fail(_X)  -> nothing.
 
+-spec return(A) -> maybe(A).
+return(X) -> {just, X}.
+
+
+-spec fail(any()) -> maybe(_A).
+fail(_X) -> nothing.
+
+
+-spec mzero() -> maybe(_A).
 mzero() -> nothing.
+
+
+-spec mplus(maybe(A), maybe(A)) -> maybe(A).
 mplus(nothing, Y) -> Y;
 mplus(X,      _Y) -> X.

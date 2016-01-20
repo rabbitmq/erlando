@@ -35,19 +35,27 @@
 -behaviour(monad_plus).
 -export([mzero/0, mplus/2]).
 
--ifdef(use_specs).
--type(monad(A) :: [A]).
--include("monad_specs.hrl").
--include("monad_plus_specs.hrl").
--endif.
 
-'>>='(X, Fun) -> diagonal([Fun(E) || E <- X]).
+-spec '>>='([A], fun( (A) -> [B] )) -> [B].
+'>>='(X, Fun) ->
+    diagonal([Fun(E) || E <- X]).
 
+
+-spec return(A) -> [A].
 return(X) -> [X].
-fail(_X)  -> [].
 
+
+-spec fail(any()) -> [_A].
+fail(_X) -> [].
+
+
+-spec mzero() -> [_A].
 mzero() -> [].
-mplus(X, Y) -> lists:append(X, Y).
+
+
+-spec mplus([A], [A]) -> [A].
+mplus(X, Y) ->
+    lists:append(X, Y).
 
 %% [[a, b, c, d],
 %%  [e, f, g, h],
@@ -57,6 +65,7 @@ mplus(X, Y) -> lists:append(X, Y).
 %% diagonal traverses diagonally from north-west corner, heading east
 %% then south-west. I.e.
 %% [a, b, e, c, f, i, d, g, j, m, h, k, n, l, o, p]
+-spec diagonal([[A]]) -> [A].
 diagonal(LoL) -> lists:append(stripe(LoL)).
 
 stripe([])           -> [];
