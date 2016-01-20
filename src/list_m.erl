@@ -24,21 +24,27 @@
 -behaviour(monad_plus).
 -export([mzero/0, mplus/2]).
 
--ifdef(use_specs).
--type(monad(A) :: [A]).
--include("monad_specs.hrl").
--include("monad_plus_specs.hrl").
--endif.
 
 %% Note that using a list comprehension is (obviously) cheating, but
 %% it's easier to read. The "real" implementation is also included for
 %% completeness.
-
+-spec '>>='([A], fun( (A) -> [B] )) -> [B].
 '>>='(X, Fun) -> lists:append([Fun(E) || E <- X]).
 %%               lists:foldr(fun (E, Acc) -> Fun(E) ++ Acc end, [], X).
 
-return(X) -> [X].
-fail(_X)  -> [].
 
+-spec return(A) -> [A].
+return(X) -> [X].
+
+
+-spec fail(any()) -> [_A].
+fail(_E) -> [].
+
+
+-spec mzero() -> [_A].
 mzero() -> [].
-mplus(X, Y) -> lists:append(X, Y).
+
+
+-spec mplus([A], [A]) -> [A].
+mplus(X, Y) ->
+    lists:append(X, Y).

@@ -14,30 +14,36 @@
 %% Copyright (c) 2011-2013 VMware, Inc.  All rights reserved.
 %%
 
--module(error_t, [InnerMonad]).
+-module(error_t).
 -compile({parse_transform, do}).
 
--behaviour(monad).
--export(['>>='/2, return/1, fail/1, run/1, lift/1]).
+-export_type([error_t/2]).
 
--ifdef(use_specs).
--type(monad(A) :: fun (() -> 'ok' | {'ok', A} | {'error', any()})).
--include("monad_specs.hrl").
--endif.
+-behaviour(monad_trans).
+-export([new/1, '>>='/3, return/2, fail/2, run/2, lift/2]).
 
-'>>='(X, Fun) -> fun () ->
-                         do([InnerMonad ||
-                                R <- X(),
-                                case R of
-                                    {error, _Err} = Error -> return(Error);
-                                    {ok,  Result}         -> (Fun(Result))();
-                                    ok                    -> (Fun(ok))()
-                                end
-                            ])
-                 end.
+-opaque error_t(M, A) :: monad:monadic(M, ok | {ok, A} | {error, any()}).
 
-return(ok) -> fun () -> InnerMonad:return(ok) end;
-return(X)  -> fun () -> InnerMonad:return({ok, X}) end.
+
+-spec new(M) -> TM when TM :: monad:monad(), M :: monad:monad().
+new(M) ->
+    {?MODULE, M}.
+
+
+-spec '>>='(error_t(M, A), fun( (A) -> error_t(M, B) ), M) -> error_t(M, B).
+'>>='(X, Fun, {?MODULE, M}) ->
+    do([M || R <- X,
+             case R of
+                 {error, _Err} = Error -> return(Error);
+                 {ok,  Result}         -> Fun(Result);
+                 ok                    -> Fun(ok)
+             end
+       ]).
+
+
+-spec return(A, M) -> error_t(M, A).
+return(ok, {?MODULE, M}) -> M:return(ok);
+return(X , {?MODULE, M}) -> M:return({ok, X}).
 
 %% This is the equivalent of
 %%     fail msg = ErrorT $ return (Left (strMsg msg))
@@ -48,8 +54,16 @@ return(X)  -> fun () -> InnerMonad:return({ok, X}) end.
 %% I.e. note that calling fail on the outer monad is not a failure of
 %% the inner monad: it is success of the inner monad, but the failure
 %% is encapsulated.
-fail(X)   -> fun () -> InnerMonad:return({error, X}) end.
+-spec fail(any(), M) -> error_t(M, _A).
+fail(E, {?MODULE, M}) ->
+    M:return({error, E}).
 
-run(Fun) -> Fun().
 
-lift(X) -> fun () -> do([InnerMonad || A <- X, return({ok, A})]) end.
+-spec run(error_t(M, A), M) -> monad:monadic(M, ok | {ok, A} | {error, any()}).
+run(EM, _M) -> EM.
+
+
+-spec lift(monad:monadic(M, A), M) -> error_t(M, A).
+lift(X, {?MODULE, M}) ->
+    do([M || A <- X,
+             return({ok, A})]).

@@ -16,21 +16,27 @@
 
 -module(error_m).
 
+-export_type([error_m/1]).
+
 -behaviour(monad).
 -export(['>>='/2, return/1, fail/1]).
 
 %% This is really instance (Error e) => Monad (Either e) with 'error'
 %% for Left and 'ok' for Right.
+-type error_m(A) :: ok | {ok, A} | {error, any()}.
 
--ifdef(use_specs).
--type(monad(A) :: 'ok' | {'ok', A} | {'error', any()}).
--include("monad_specs.hrl").
--endif.
 
+-spec '>>='(error_m(A), fun( (A) -> error_m(B) )) -> error_m(B).
 '>>='({error, _Err} = Error, _Fun) -> Error;
 '>>='({ok, Result},           Fun) -> Fun(Result);
 '>>='(ok,                     Fun) -> Fun(ok).
 
+
+-spec return(A) -> error_m(A).
 return(ok) -> ok;
-return(X)  -> {ok,    X}.
-fail(X)    -> {error, X}.
+return(X ) -> {ok, X}.
+
+
+-spec fail(any()) -> error_m(_A).
+fail(X) ->
+    {error, X}.

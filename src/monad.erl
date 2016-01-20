@@ -15,29 +15,30 @@
 %%
 
 -module(monad).
-
--export([behaviour_info/1]).
--export([join/2, sequence/2]).
-
--ifdef(use_specs).
--type(monad(_A) :: any()). %% urm, don't know what to do here.
--spec(join/2 :: (atom(), monad(monad(A))) -> monad(A)).
--spec(sequence/2 :: (atom(), [monad(A)]) -> monad([A])).
--endif.
-
 -compile({parse_transform, do}).
 
-behaviour_info(callbacks) ->
-    [{'>>=',  2},
-     {return, 1},
-     {fail,   1}];
-behaviour_info(_Other) ->
-    undefined.
+-export_type([monad/0, monadic/2]).
 
+-export([join/2, sequence/2]).
+
+-type monad()         :: module() | {module(), monad()}.
+-type monadic(_M, _A) :: any().
+
+
+%% Monad primitives
+-callback '>>='(monadic(M, A), fun( (A) -> monadic(M, B) )) -> monadic(M, B) when M :: monad().
+-callback return(A) -> monadic(M, A) when M :: monad().
+-callback fail(any()) -> monadic(M, _A) when M :: monad().
+
+
+%% Utility functions
+-spec join(M, monadic(M, monadic(M, A))) -> monadic(M, A).
 join(Monad, X) ->
     do([Monad || Y <- X,
                  Y]).
 
+
+-spec sequence(M, [monadic(M, A)]) -> monadic(M, [A]).
 sequence(Monad, Xs) ->
     sequence(Monad, Xs, []).
 
