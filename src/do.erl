@@ -95,6 +95,10 @@ pattern({cons,Line,H0,T0}) ->
 pattern({tuple,Line,Ps0}) ->
     Ps1 = pattern_list(Ps0),
     {tuple,Line,Ps1};
+%% OTP 17.0: EEP 443: Map pattern
+pattern({map, Line, Fields0}) ->
+    Fields1 = map_fields(Fields0, []),
+    {map, Line, Fields1};
 %%pattern({struct,Line,Tag,Ps0}) ->
 %%    Ps1 = pattern_list(Ps0),
 %%    {struct,Line,Tag,Ps1};
@@ -201,6 +205,15 @@ expr({bc, Line, E0, Qs0}, MonadStack) ->
 expr({tuple, Line, Es0}, MonadStack) ->
     Es1 = expr_list(Es0, MonadStack),
     {tuple, Line, Es1};
+%% OTP 17.0: EEP 443: Map construction
+expr({map, Line, Fields0}, MonadStack) ->
+    Fields1 = map_fields(Fields0, MonadStack),
+    {map, Line, Fields1};
+%% OTP 17.0: EEP 443: Map update
+expr({map, Line, Expr0, Fields0}, MonadStack) ->
+    Expr1 = expr(Expr0, MonadStack),
+    Fields1 = map_fields(Fields0, MonadStack),
+    {map, Line, Expr1, Fields1};
 expr({record_index, Line, Name, Field0}, MonadStack) ->
     Field1 = expr(Field0, MonadStack),
     {record_index, Line, Name, Field1};
@@ -323,6 +336,17 @@ expr_list([E0|Es], MonadStack) ->
     E1 = expr(E0, MonadStack),
     [E1|expr_list(Es, MonadStack)];
 expr_list([], _MonadStack) -> [].
+
+%% -type map_fields([MapField]) -> [MapField].
+map_fields([{map_field_assoc, Line, ExpK0, ExpV0}|Fs], MonadStack) ->
+    ExpK1 = expr(ExpK0, MonadStack),
+    ExpV1 = expr(ExpV0, MonadStack),
+    [{map_field_assoc, Line, ExpK1, ExpV1}|map_fields(Fs, MonadStack)];
+map_fields([{map_field_exact, Line, ExpK0, ExpV0}|Fs], MonadStack) ->
+    ExpK1 = expr(ExpK0, MonadStack),
+    ExpV1 = expr(ExpV0, MonadStack),
+    [{map_field_exact, Line, ExpK1, ExpV1}|map_fields(Fs, MonadStack)];
+map_fields([], _MoandStack) -> [].
 
 %% -type record_inits([RecordInit]) -> [RecordInit].
 %%  N.B. Field names are full expressions here but only atoms are allowed

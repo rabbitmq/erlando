@@ -195,6 +195,14 @@ test_named_fun() ->
            end,
     true = Fib(10) =:= 55.
 
+test_maps() ->
+    M1 = do([maybe_m || A = #{ a => b },
+                        X <- return(A),
+                        Y <- return(X#{ a := c, b => d }),
+                        return(Y)
+            ]),
+    {just, #{ a := c, b := d }} = M1.
+
 test() ->
     test:test([{?MODULE, [test_sequence,
                           test_join,
@@ -206,5 +214,6 @@ test() ->
                           test_let_match,
                           test_let_first,
                           test_let_escapes,
-                          test_nemd_fun]}],
+                          test_nemd_fun,
+                          test_maps]}],
               [report, {name, ?MODULE}]).
