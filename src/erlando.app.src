@@ -1,6 +1,17 @@
 {application, erlando,
  [{description, "Syntax extensions for Erlang"},
-  {vsn, "%%VSN%%"},
+  {vsn, git},
   {modules, []},
   {registered, []},
-  {applications, []}]}.
+  {applications, []},
+  {pkg_name, "rabbitmq_erlando"},
+  {maintainers, [
+    "VMware, Inc"
+  ]},
+  {licenses, [
+    "MPL 1.1"
+  ]},
+  {links, [
+    {"GitHub", "https://github.com/rabbitmq/erlando"}
+  ]}
+ ]}.
