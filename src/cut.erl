@@ -1,7 +1,7 @@
 %% This file is a copy of erl_id_trans.erl from the R14B02 Erlang/OTP
 %% distribution, with modifications to make it implement Scheme
 %% Notation for Specializing Parameters without Currying
-%% (http://srfi.schemers.org/srfi-26/srfi-26.html).
+%% (https://srfi.schemers.org/srfi-26/srfi-26.html).
 
 %% All modifications are (C) 2011-2013 VMware, Inc.
 
@@ -10,7 +10,7 @@
 %% Version 1.1, (the "License"); you may not use this file except in
 %% compliance with the License. You should have received a copy of the
 %% Erlang Public License along with this software. If not, it can be
-%% retrieved via the world wide web at http://www.erlang.org/.
+%% retrieved via the world wide web at https://www.erlang.org/.
 %%
 %% Software distributed under the License is distributed on an "AS IS"
 %% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See

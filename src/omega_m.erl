@@ -1,7 +1,7 @@
 %% The contents of this file are subject to the Mozilla Public License
 %% Version 1.1 (the "License"); you may not use this file except in
 %% compliance with the License. You may obtain a copy of the License
-%% at http://www.mozilla.org/MPL/
+%% at https://www.mozilla.org/MPL/
 %%
 %% Software distributed under the License is distributed on an "AS IS"
 %% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
@@ -17,7 +17,7 @@
 %% This is the Omega monad which is like the list monad, but does not
 %% depth first, and not breadth first traversal. This implementation
 %% is based on Luke Palmer's Control.Monad.Omega module for Haskell
-%% (http://hackage.haskell.org/packages/archive/control-monad-omega/latest/doc/html/Control-Monad-Omega.html). As
+%% (https://hackage.haskell.org/packages/archive/control-monad-omega/latest/doc/html/Control-Monad-Omega.html). As
 %% the documentation there states:
 %%
 %%    Warning: Omega is only a monad when the results are interpreted

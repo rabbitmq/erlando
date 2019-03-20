@@ -1,7 +1,7 @@
 %% The contents of this file are subject to the Mozilla Public License
 %% Version 1.1 (the "License"); you may not use this file except in
 %% compliance with the License. You may obtain a copy of the License
-%% at http://www.mozilla.org/MPL/
+%% at https://www.mozilla.org/MPL/
 %%
 %% Software distributed under the License is distributed on an "AS IS"
 %% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
@@ -49,7 +49,7 @@ return(X , {?MODULE, M}) -> M:return({ok, X}).
 %%     fail msg = ErrorT $ return (Left (strMsg msg))
 %% from the instance (Monad m, Error e) => Monad (ErrorT e m)
 %%
-%% http://hackage.haskell.org/packages/archive/mtl/1.1.0.2/doc/html/src/Control-Monad-Error.html#ErrorT
+%% https://hackage.haskell.org/packages/archive/mtl/1.1.0.2/doc/html/src/Control-Monad-Error.html#ErrorT
 %%
 %% I.e. note that calling fail on the outer monad is not a failure of
 %% the inner monad: it is success of the inner monad, but the failure

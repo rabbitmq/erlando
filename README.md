@@ -6,16 +6,16 @@
 
 Erlando is a set of syntax extensions for Erlang. Currently it
 consists of three syntax extensions, all of which take the form of
-[parse-transformers](http://www.erlang.org/doc/man/erl_id_trans.html).
+[parse-transformers](https://www.erlang.org/doc/man/erl_id_trans.html).
 
 * **Cut**: This adds support for *cut*s to Erlang. These are
   inspired by the
-  [Scheme form of cuts](http://srfi.schemers.org/srfi-26/srfi-26.html). *Cut*s
+  [Scheme form of cuts](https://srfi.schemers.org/srfi-26/srfi-26.html). *Cut*s
   can be thought of as a light-weight form of abstraction, with
   similarities to partial application (or currying).
 
 * **Do**: This adds support for *do*-syntax and monads to
-  Erlang. These are heavily inspired by [Haskell](http://haskell.org),
+  Erlang. These are heavily inspired by [Haskell](https://haskell.org),
   and the monads and libraries are near-mechanical translations from
   the Haskell GHC libraries.
 
@@ -223,7 +223,7 @@ you're just defining another list element.
 
 
 See
-[test_cut.erl](http://hg.rabbitmq.com/erlando/file/default/test/src/test_cut.erl)
+[test_cut.erl](https://hg.rabbitmq.com/erlando/file/default/test/src/test_cut.erl)
 for more examples, including the use of *cut*s in list comprehensions and
 binary construction.
 
@@ -531,7 +531,7 @@ it to (and collect it from) the functions we wish to run.
 
 > Our implementation of monad-transformers (like State) uses a "hidden feature"
 of the Erlang distribution called *parameterized modules*. These are
-described in [Parameterized Modules in Erlang](http://ftp.sunet.se/pub/lang/erlang/workshop/2003/paper/p29-carlsson.pdf).
+described in [Parameterized Modules in Erlang](https://ftp.sunet.se/pub/lang/erlang/workshop/2003/paper/p29-carlsson.pdf).
 
 The State-transform can be applied to any monad. If we apply it to the
 Identity-monad then we get what we're looking for. The key extra
@@ -600,7 +600,7 @@ For cosmetic reasons, it is sometimes desirable to import a remote
 function into the current module's namespace. This eliminates the need
 to continuously prefix calls to that function with its module
 name. Erlang can already do this by using the
-[`-import` attribute](http://www.erlang.org/doc/reference_manual/modules.html).
+[`-import` attribute](https://www.erlang.org/doc/reference_manual/modules.html).
 However, this always uses the same function name locally as remotely
 which can either lead to misleading function names or even
 collisions. Consider, for example, wishing to import `length`
